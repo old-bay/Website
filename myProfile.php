@@ -2,404 +2,246 @@
 require_once('pageIncludes/myProfile.inc.php');
 require_once('includes/update.php');
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ - My Profile</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ - My Profile</title>
+  <meta name="description" content="Your UMBC HvZ player profile, stats, and settings.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
-			<?php
-			if(isset($_SESSION['isAdmin']) && $_SESSION['isAdmin'] >= -1) { //This is here to easily restrict access to the page. Just change the -1 to 1 or 2 to restrict.
-				if($playerData){
-					if(isset($GLOBALS['profileMessage']) && $GLOBALS['profileMessage']!="") echo "<h3>".$GLOBALS['profileMessage']."</h3>";
-					echo "<h2><b>Hi, {$playerData['fname']}!</h2><hr style=\"display: block;\"></b><br/>";
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
 
-					//temporary one-time block of code to set data right in database
-					//leaving it here for reference and in case similar code is needed
-					/*
-					$uid = "US0000-";
-					while($uid != "US003q5") { //UPDATE THIS TO NEWEST USER AS NEEDED
-						echo $uid;
-						echo " ";
-						$totalCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` WHERE `UID` = '$uid';");
-						$totalCount = $totalCount['cnt'];
-						echo $totalCount;
-						echo " ";
-						//UPDATE THIS FOR FUTURE USE
-						$termCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` WHERE `UID` = '$uid' AND `creationDate` > '2020-01-01';");
-						$termCount = $termCount['cnt'];
-						echo $termCount;
-						echo " ";
-						$humanCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` WHERE `UID` = '$uid' AND `startState` = '1';");
-						$humanCount = $humanCount['cnt'];
-						echo $humanCount;
-						echo " ";
-						$zombieCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` WHERE `UID` = '$uid' AND (`startState` < '0' OR `startState` = '2');");
-						$zombieCount = $zombieCount['cnt'];
-						echo $zombieCount;
-						echo " ";
-						$modCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` WHERE `UID` = '$uid' AND `startState` = '4';");
-						$modCount = $modCount['cnt'];
-						echo $modCount;
-						echo " ";
-						$adminCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE 
-						`UID` = '$uid' AND `meetingType` = '1';");
-						$adminCount = $adminCount['cnt'];
-						echo $adminCount;
-						echo " ";
-						//UPDATE THIS FOR FUTURE USE
-						$adminTerm = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE 
-						`UID` = '$uid' AND `meetingType` = '1' AND `creationDate` > '2020-01-01';");
-						$adminTerm = $adminTerm['cnt'];
-						echo $adminTerm;
-						echo "<br/>";
-						
-						//mysql_query("UPDATE `users` SET `zombieStartsTotal`='$zombieCount' WHERE `UID` = '$uid';");
-						//mysql_query("UPDATE `users` SET `humanStartsTotal`='$humanCount' WHERE `UID` = '$uid';");
-						//mysql_query("UPDATE `users` SET `gamesModdedTotal`='$modCount' WHERE `UID` = '$uid';");
-						
-						mysql_query("UPDATE `users` SET `adminMeetingsTotal`='$adminCount' WHERE `UID` = '$uid';");
-						mysql_query("UPDATE `users` SET `adminMeetingsThisTerm`='$adminTerm' WHERE `UID` = '$uid';");
-						
-						mysql_query("UPDATE `users` SET `appearancesTotal`='$totalCount' WHERE `UID` = '$uid';");
-						mysql_query("UPDATE `users` SET `appearancesThisTerm`='$termCount' WHERE `UID` = '$uid';");
+<section class="page-header">
+  <div class="container">
+    <h1>My Profile</h1>
+  </div>
+</section>
 
-						$chars = array();
-						array_push($chars, "-");
-						for($i=0; $i<10; $i++){
-							array_push($chars, "$i");
-						}
-						for($i=0, $c='a'; $i<26; $i++, $c++){
-							array_push($chars, "$c");
-						}
-						echo "Set acceptable chars | ";
-						//Take the highest UID, add one, then make a new ID from that.
-						$id = str_split(substr($uid, 2));
-						$curCharPos = 4;
-						echo "Beginning loop | ";
-						while($curCharPos>-1){
-							echo "Begin iteration at index $curCharPos | ";
-							$curChar = $id[$curCharPos];
-							if($curChar != $chars[36]){
-								$charIndex = array_search($curChar, $chars);
-								$charIndex += 1;
-								$id[$curCharPos] = $chars[$charIndex];
-								break;
-							}else{
-								$id[$curCharPos] = $chars[0];
-								//and continue to the next one
-								$curCharPos -= 1;
-							}
-							echo "End iteration at index $curCharPos | ";
-						}
-						echo "Attaching prefix | ";
-						$uid = "US".implode($id);
-						echo "Attached";
-						echo "<br/>";
-					}*/
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <?php
+      // isAdmin >= -1 check makes it easy to restrict this page; raise the threshold to restrict.
+      if(isset($_SESSION['isAdmin']) && $_SESSION['isAdmin'] >= -1) {
+        if($playerData) {
+          if(isset($GLOBALS['profileMessage']) && $GLOBALS['profileMessage'] != "")
+            echo '<div class="notice">' . $GLOBALS['profileMessage'] . '</div>';
 
+          echo '<h2>Hi, ' . htmlspecialchars($playerData['fname']) . '!</h2>';
 
-					/*
-					$uid = "US0000-";
-					while($uid != "US003q-") {
-						echo $uid;
-						echo " ";
-						$totalCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE `UID` = '$uid' AND `meetingID` >= 'ME0005A' AND `meetingID` <= 'ME00069' AND `isResolved` = '1' ORDER BY `meetingID` DESC;");
-						$totalCount = $totalCount['cnt'];
-						echo $totalCount;
-						echo " ";
-						$humanCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE `UID` = '$uid' AND `startState` = '1' AND `UID` = '$uid' AND `meetingID` >= 'ME0005A' AND `meetingID` <= 'ME00069' AND `isResolved` = '1' ORDER BY `meetingID` DESC;");
-						$humanCount = $humanCount['cnt'];
-						echo $humanCount;
-						echo " ";
-						$zombieCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE `UID` = '$uid' AND (`startState` < '0' OR `startState` = '2') AND `UID` = '$uid' AND `meetingID` >= 'ME0005A' AND `meetingID` <= 'ME00069' AND `isResolved` = '1' ORDER BY `meetingID` DESC;");
-						$zombieCount = $zombieCount['cnt'];
-						echo $zombieCount;
-						echo " ";
-						$modCount = mysql_oneline("SELECT COUNT(*) cnt FROM `meeting_log` NATURAL JOIN `meeting_list` WHERE `UID` = '$uid' AND `startState` = '4' AND `UID` = '$uid' AND `meetingID` >= 'ME0005A' AND `meetingID` <= 'ME00069' AND `isResolved` = '1' ORDER BY `meetingID` DESC;");
-						$modCount = $modCount['cnt'];
-						echo $modCount;
-						echo "<br/>";
-						mysql_query("UPDATE `users` SET `zombieStartsThisTerm`='$zombieCount' WHERE `UID` = '$uid';");
-						mysql_query("UPDATE `users` SET `humanStartsThisTerm`='$humanCount' WHERE `UID` = '$uid';");
-						mysql_query("UPDATE `users` SET `gamesModdedThisTerm`='$modCount' WHERE `UID` = '$uid';");
-						mysql_query("UPDATE `users` SET `appearancesThisTerm`='$totalCount' WHERE `UID` = '$uid';");
+          // ---- Attendance Stats ----
+          $uid = $_SESSION['uid'];
+          $ret = mysql_oneline("SELECT * FROM `users` WHERE `UID` = '$uid';");
+          ?>
 
-						$chars = array();
-						array_push($chars, "-");
-						for($i=0; $i<10; $i++){
-							array_push($chars, "$i");
-						}
-						for($i=0, $c='a'; $i<26; $i++, $c++){
-							array_push($chars, "$c");
-						}
-						echo "Set acceptable chars | ";
-						//Take the highest UID, add one, then make a new ID from that.
-						$id = str_split(substr($uid, 2));
-						$curCharPos = 4;
-						echo "Beginning loop | ";
-						while($curCharPos>-1){
-							echo "Begin iteration at index $curCharPos | ";
-							$curChar = $id[$curCharPos];
-							if($curChar != $chars[36]){
-								$charIndex = array_search($curChar, $chars);
-								$charIndex += 1;
-								$id[$curCharPos] = $chars[$charIndex];
-								break;
-							}else{
-								$id[$curCharPos] = $chars[0];
-								//and continue to the next one
-								$curCharPos -= 1;
-							}
-							echo "End iteration at index $curCharPos | ";
-						}
-						echo "Attaching prefix | ";
-						$uid = "US".implode($id);
-						echo "Attached";
-						echo "<br/>";
-					}
-					*/
+          <div class="card">
+            <h2>Game &amp; Attendance Statistics</h2>
 
-					$uid = $_SESSION['uid'];
-					$ret = mysql_oneline("SELECT * FROM `users` WHERE `UID` = '$uid';");
+            <h3>This Semester</h3>
+            <ul>
+              <li>Total Appearances: <?php echo $ret['appearancesThisTerm']; ?></li>
+              <li>Missions Started as Zombie/OZ: <?php echo $ret['zombieStartsThisTerm']; ?></li>
+              <li>Missions Started as Human: <?php echo $ret['humanStartsThisTerm']; ?></li>
+              <li>Missions Moderated: <?php echo $ret['gamesModdedThisTerm']; ?></li>
+              <li>Community Meetings Attended: <?php echo $ret['adminMeetingsThisTerm']; ?></li>
+            </ul>
 
-					echo "<h2><i>Game & Attendance Statistics</i></h2><br/>";
+            <h3>Cumulative</h3>
+            <ul>
+              <li>Total Appearances: <?php echo $ret['appearancesTotal']; ?></li>
+              <li>Missions Started as Zombie/OZ: <?php echo $ret['zombieStartsTotal']; ?></li>
+              <li>Missions Started as Human: <?php echo $ret['humanStartsTotal']; ?></li>
+              <li>Missions Moderated: <?php echo $ret['gamesModdedTotal']; ?></li>
+              <li>Community Meetings Attended (since Jan 2019): <?php echo $ret['adminMeetingsTotal']; ?></li>
+            </ul>
+            <p class="text-muted">
+              <strong>Note:</strong> Starting-side data may not be accurate with round-based or random-OZ missions.
+              Mission attendance was not accurately tracked until 2017. If you believe there is a recent
+              attendance error, please contact an officer.
+            </p>
+            <p>If you have 5/25/50/100/250 missions but lack the corresponding achievement, it should be
+            awarded when you are next signed in.</p>
+            <?php
+            if(canVote($uid)) {
+              echo '<p><strong>You are a member of UMBC Humans vs. Zombies.</strong></p>';
+            } else {
+              echo '<p>You are not yet a member of UMBC Humans vs. Zombies.</p>';
+            }
+            $currentSemesterCount = $ret['appearancesThisTerm'];
+            $lastSemesterCount    = $ret['appearancesLastTerm'];
+            $sum = $currentSemesterCount + $lastSemesterCount;
+            echo "<p>You have attended $currentSemesterCount meetings this semester and $lastSemesterCount last semester (total: $sum). Membership requires 5 across the current and previous semester.</p>";
+            ?>
+          </div>
 
-					echo "<h3>This Semester's Attendance</h3></br>";
-					$total = $ret['appearancesThisTerm'] + rand(0, 0);
-					$zombie = $ret['zombieStartsThisTerm'] + rand(0, 0);
-					$human = $ret['humanStartsThisTerm'] + rand(0, 0);
-					$mod = $ret['gamesModdedThisTerm'] + rand(0, 0);
-					$admins = $ret['adminMeetingsThisTerm'] + rand(0, 0);
-					echo "Total Appearances: $total </br>";
-					echo "Missions Started Zombie/OZ: $zombie </br>";
-					echo "Missions Started Human: $human </br>";
-					echo "Missions Moderated: $mod </br>";
-					echo "Community Meetings Attended: $admins </br>";
+          <div class="card">
+            <h2>Other Player Records</h2>
+            <h3>Waiver Status</h3>
+            <?php
+            $waiverStatus = denumerate('waiverStatus', $ret['hasTurnedInWaiver']);
+            echo "<p>Your waiver status is <strong>$waiverStatus</strong></p>";
+            ?>
+            <p>
+              By UMBC rules, all players must have a waiver on file each year. If your status shows "Cleared",
+              our records indicate you have filed one. Records may not update immediately. If you have not filed,
+              you can submit an
+              <a href="https://umbcorgs.dserec.com/online/clubsports_widget/club/84/registration" target="_blank" rel="noopener noreferrer">online waiver here</a>,
+              or request a paper waiver from an officer.
+            </p>
+          </div>
 
-					echo "</br><h3>Cumulative Attendance</h3></br>";
-					$total = $ret['appearancesTotal'] + rand(0, 0);
-					$zombie = $ret['zombieStartsTotal'] + rand(0, 0);
-					$human = $ret['humanStartsTotal'] + rand(0, 0);
-					$mod = $ret['gamesModdedTotal'] + rand(0, 0);
-					$admins = $ret['adminMeetingsTotal'];
-					echo "Total Appearances: $total </br>";
-					echo "Missions Started Zombie/OZ: $zombie </br>";
-					echo "Missions Started Human: $human </br>";
-					echo "Missions Moderated: $mod </br>";
-					echo "Community Meetings Attended (Since January 2019): $admins </br>";
-					echo "<br/><b>NOTE:</b> Data regarding starting side may not be accurate with round-based missions or missions with random OZs. Mission attendance was also not accurately tracked until 2017. Therefore, these numbers may not be 100% accurate. It is impossible to retroactively correct every attendance error from the past. However, if you believe there is an error in your attendance records regarding a recent meeting, please contact an officer.</br></br>";
+          <div class="card">
+            <h2>Long Game Settings</h2>
+            <?php
+            if($curLongGame) {
+              $title = htmlspecialchars($curLongGame['title']);
+              if($longPlayerData) {
+                echo "<p>Your kill code for <strong>$title</strong> is <strong>{$longPlayerData['mainKill']}</strong>.</p>";
+              }
+            }
+            ?>
 
-					echo "If you have 5/25/50/100/250 missions but do not have the corresponding achievement, when you are signed in to your next meeting, the achievement should be awarded.<br/>";
+            <h3>OZ Opt-In</h3>
+            <form action="" method="post">
+              <div class="form-group">
+                <label><input type="radio" name="ozOpt" value="in"<?php if($playerData['ozOptIn']==1) echo ' checked'; ?>> Yes, I want to be in the OZ pool</label>
+              </div>
+              <div class="form-group">
+                <label><input type="radio" name="ozOpt" value="out"<?php if($playerData['ozOptIn']==0) echo ' checked'; ?>> No, I do not want to be in the OZ pool</label>
+              </div>
+              <div class="form-group">
+                <label for="ozText"><strong>Brief reason for wanting to be an OZ:</strong><br>
+                  <em>Leaving this blank will <u>disqualify</u> you as an OZ</em>
+                </label>
+                <textarea class="form-control" id="ozText" name="ozText" rows="4"><?php echo htmlspecialchars(preg_replace("/\\\\*'/","'",$playerData['ozParagraph'])); ?></textarea>
+              </div>
+              <button type="submit" name="ozSubmit" class="btn btn-primary">Update OZ Preferences</button>
+            </form>
+            <p class="text-muted">
+              <strong>Note:</strong> This field does <strong>not</strong> reset weeklong to weeklong.
+              You remain opted in or out with the same reason until you change it here.
+            </p>
 
-					//Club members can vote. Nobody else can.
-					if(canVote($uid)) {
-						echo "You are a member of UMBC Humans vs. Zombies.<br/><br/>";
-					}
-					else {
-						echo "You are not a member of UMBC Humans vs. Zombies (yet).<br/><br/>";
-					}
-					echo "A UMBC student can become a member of the UMBC Humans vs. Zombies Club by attending 5 games or meetings in the current and previous Spring or Fall semester.<br/><br/>";
-					$currentSemesterCount = $ret['appearancesThisTerm'];
-					$lastSemesterCount = $ret['appearancesLastTerm'];
-					$sum = ($currentSemesterCount + $lastSemesterCount) * rand(1, 1);
-					echo "You have attended $currentSemesterCount meetings this semester and $lastSemesterCount meetings last semester for a total of $sum.<br/>";
+            <?php if($longPlayerData && $longPlayerData['state'] > 0): ?>
+            <h3>iDied</h3>
+            <p>
+              Click this button <strong>only</strong> if you were tagged and the kill <strong>cannot</strong>
+              be logged (kill code doesn't work or can't be found). Do not use this to suicide.
+              OZs: use this to reveal yourself after your 2 days or 2 kills are over.
+            </p>
+            <form action="" method="post">
+              <button type="submit" name="iDied" class="btn btn-outline">iDied</button>
+            </form>
+            <?php endif; ?>
+          </div>
 
-					echo "<br/><h2><i>Other Player Records</i></h2><br/>";
-					
-					echo "</br><h3>Waiver Status</h3></br>";
-					$waiverStatus = $ret['hasTurnedInWaiver'];
-					$waiverStatus = denumerate('waiverStatus', $waiverStatus);
-					echo "Your waiver status is <strong>$waiverStatus</strong><br/><br/>";
-					echo "By UMBC rules, all players are required to have a waiver turned in each year to participate in UMBC HvZ games. If your waiver status is listed above as \"Cleared\", then our records indicate that you have filled out a waiver. Our records will not update right away, so it is possible that you have filled out a waiver, but your status above indicates otherwise. If you have <strong>not</strong> filled out a waiver, you can fill out an online waiver <a href=\"https://umbcorgs.dserec.com/online/clubsports_widget/club/84/registration\">here</a>. If you are unable to fill out an online waiver, you can request a paper waiver from an officer at one of our meetings.<br/>";
-					
-					/* No longer needed
-					echo "</br><h3>Vaccination Status</h3></br>";
-					$vaccineStatus = $ret['vaccineStatus'];
-					$vaccineStatus = denumerate('vaccineStatus', $vaccineStatus);
-					echo "Your coronavirus vaccination status is <strong>$vaccineStatus</strong><br/><br/>";
-					echo "NOTE: By UMBC rules, players are <i>no longer required</i> to be vaccinated to participate in UMBC HvZ games as of Fall 2022. Most of you that are vaccinated will be listed as unvaccinated above since our website's vaccination records are not up-to-date.<br/>";
-					*/
-					
-					echo "<br/><h2><i>Long game settings</i></h2><br/>";
+          <div class="card">
+            <h2>Opt-In to New Features</h2>
+            <p>
+              You may opt in to new website features that haven't been fully tested. Problems are more likely,
+              but the features add useful functionality.
+            </p>
+            <form action="" method="post">
+              <div class="form-group">
+                <label><input type="radio" name="betaOpt" value="in"<?php if($playerData['isBetaTester']==1) echo ' checked'; ?>> Yes, opt me in to beta features</label>
+              </div>
+              <div class="form-group">
+                <label><input type="radio" name="betaOpt" value="out"<?php if($playerData['isBetaTester']==0) echo ' checked'; ?>> No, I don't want to see new features</label>
+              </div>
+              <button type="submit" name="betaSubmit" class="btn btn-primary">Update Preferences</button>
+            </form>
 
-					if($curLongGame){
-						$title = $curLongGame['title'];
-						if($longPlayerData){
-							//Print out their kill codes and other interesting info
-							//echo "<h3>Your kill code for $title is {$longPlayerData['mainKill']}, and your feed codes are {$longPlayerData['feedKill1']} and {$longPlayerData['feedKill2']}.<br/><a href=\"myID.php\">My ID Card</a></h3><br/>";
-							echo "<h3>Your kill code for $title is {$longPlayerData['mainKill']}.<br/></h3><br/>";
-							echo "<br/>";
-							//echo "<h3><a href=\"images/debit_card.png\">Click here for the debit card template</a></h3>";
-						}
-					}
+            <?php if($playerData['isBetaTester'] == '1'): ?>
+            <hr style="display:block; margin:1.5rem 0; border-color:var(--color-border);">
+            <h3>Change Name / Username <em>(Under Construction)</em></h3>
+            <p>
+              Update your first name, last name, or username below. Officers reserve the right to change
+              inappropriate names. Abuse of this system will result in loss of privileges.
+            </p>
+            <?php if($playerData['canChangeName'] == 0): ?>
+              <p class="text-muted">You have been prohibited from changing your name/username. Contact the officer board if you believe this is a mistake.</p>
+            <?php elseif($playerData['canChangeName'] == 1): ?>
+              <p>
+                Current username: <strong><?php echo htmlspecialchars($playerData['uname']); ?></strong><br>
+                Current first name: <strong><?php echo htmlspecialchars($playerData['fname']); ?></strong><br>
+                Current last name: <strong><?php echo htmlspecialchars($playerData['lname']); ?></strong>
+              </p>
+              <form action="" method="post">
+                <div class="form-group">
+                  <label for="new_uname">New username (leave blank for no change)</label>
+                  <input class="form-control" type="text" id="new_uname" name="new_uname">
+                </div>
+                <div class="form-group">
+                  <label for="new_fname">New first name</label>
+                  <input class="form-control" type="text" id="new_fname" name="new_fname">
+                </div>
+                <div class="form-group">
+                  <label for="new_lname">New last name</label>
+                  <input class="form-control" type="text" id="new_lname" name="new_lname">
+                </div>
+                <button type="submit" name="updateNames" class="btn btn-primary">Update Name / Username</button>
+              </form>
+            <?php endif; ?>
+            <?php endif; ?>
+          </div>
 
-					//Populate the OZ opt in field
-					?>
-					<h3>OZ Opt-In</h3>
-					<form action="" method="post">
-						<label for="ozIn"><input type="radio" name="ozOpt" value="in" id="ozIn"<?php if($playerData['ozOptIn']==1) echo ' checked="checked"' ?>/>Yes, I want to be in the OZ pool</label>
-						<label for="ozOut"><input type="radio" name="ozOpt" value="out" id="ozOut"<?php if($playerData['ozOptIn']==0) echo ' checked="checked"' ?>/>No, I do not want to be in the OZ pool</label>
+          <div class="card">
+            <h2>Change Your Profile Picture</h2>
+            <p>Profile pictures must not contain gore, suggestive imagery, or memes. This system is monitored.
+            Violations result in a warning on the first offense and loss of picture privileges on the second.
+            The optimal image size is 100&times;100 px.</p>
+            <form method="post" enctype="multipart/form-data">
+              <div class="form-group">
+                <label for="image">Select image</label>
+                <input type="file" id="image" name="image" class="form-control">
+              </div>
+              <button type="submit" name="profilePicture" class="btn btn-primary">Upload</button>
+            </form>
+          </div>
 
-						<br/>
-						<br/><b>Please provide a brief reason for why you want to be an OZ below:</b>
-						<br/><i>Leaving this field blank will <u>disqualify</u> you as an OZ</i>
+          <div class="card">
+            <h2>Achievements</h2>
+            <h3>Select Favorite Achievement</h3>
+            <form action="/myProfile.php" method="post">
+              <div class="form-group">
+                <label for="achieve">Achievement</label>
+                <select class="form-control" id="achieve" name="achieve">
+                  <?php generateList(); ?>
+                </select>
+              </div>
+              <button type="submit" name="favoriteAchieve" class="btn btn-primary">Save</button>
+            </form>
 
-						<textarea name="ozText" style="width: 410px; height: 100px;"><?php echo preg_replace("/\\\\*'/","'",$playerData['ozParagraph']);?></textarea>
-						<br/>
-						<input type="submit" name="ozSubmit" value="Update OZ Preferences"/>
-					</form>
-					<br/>
-					<b>NOTE:</b> This field does <b><u>not</u></b> reset Weeklong to Weeklong. <u>You are considered opted out or opted in with your same OZ reason until you change your selection and reason here.</u>
-					<br/>
-					<br/>
-					<br/>
-					<?php
-					//iDied button
-					if($longPlayerData && $longPlayerData['state']>0){
-						?>
-						<h3>iDied</h3>
-						<p>
-						Please click this button ONLY if you were tagged and the kill <b>can't</b> be logged (killcode doesn't work or can't be found).
-						DO NOT USE THIS BUTTON TO SUICIDE - you will be caught if you do this!<br/>
-						OZs - use this button to reveal yourself after your 2 days or 2 kills are over.
-						</p>
-						<form action="" method="post">
-							<input type="submit" name="iDied" value="iDied"/>
-						</form>
-						<br/>
-						<?php
-					}
-					//Long game preregistering
-					//TODO field population code
-					?>
-					<!--<h3>Register for a long game </h3>
-					<div><form action="" method="post">
-						<?php 
-							//longGameRegSelect($uid);
-						?>
-					</form></div><br/>-->
-					
-					<!-- Beta Opt-In -->
-					<br/><h2><i>Opt-In To New Features</i></h2><br/>
-					<p>You may choose to opt-in to new features of the website that have not 
-					been thoroughly tested for bugs and other issues. Problems are more likely
-					to pop up while using the website, but the features themselves add useful
-					functionality and information. The choice is up to you.</p>
-					<form action="" method="post">
-						<label for="betaIn"><input type="radio" name="betaOpt" value="in" id="betaIn"<?php if($playerData['isBetaTester']==1) echo ' checked="checked"' ?>/>Yes, I want to opt into new beta features</label>
-						<label for="betaOut"><input type="radio" name="betaOpt" value="out" id="betaOut"<?php if($playerData['isBetaTester']==0) echo ' checked="checked"' ?>/>No, I do not want to see new features</label>
+            <h3 style="margin-top:1.5rem;">Current Favorite Achievement</h3>
+            <?php displayFavAchievement(); ?>
 
-						<br/>
-						<input type="submit" name="betaSubmit" value="Update New Feature Preferences"/>
-					</form><br/>
-					
-					<?php if($playerData['isBetaTester'] == '1') { //BEGIN BETA?>
-					
-						<!-- Change username/name -->
-						<br/><h2><i>UNDER CONSTRUCTION Change Name/Username</i></h2><br/>
-						<p>Has your preferred first or last name changed? Do you want to change your username? 
-						If the answer to either of these questions is yes, then this is the place to fix that.
-						Update your first name, last name, and username in the boxes below and click the button below
-						to confirm your changes. Please note, officers and other website moderators reserve the right to
-						change inappropriate names and usernames without your consent. Abuse of this system will lead to 
-						loss of privileges to this functionality.</p>
-						<?php if ($playerData['canChangeName'] == 0) { 
-							echo "<p>You have been prohibited from changing your name/username for abusing the system. 
-							Please contact the officer voard if you believe this is a mistake.</p>";
-						} else if ($playerData['canChangeName'] == 1) {
-							echo "Current username: ";
-							echo $playerData['uname'];
-							echo "<br/>";
-							
-							echo "Current first name: ";
-							echo $playerData['fname'];
-							echo "<br/>";
-							
-							echo "Current last name: ";
-							echo $playerData['lname'];
-							echo "<br/>";
-							
-							?>
-							<br/><br/>Update your information in the fields below and click the button below to confirm (leave a box blank for no change)<br/><br/>
-							<form action="" method="post">
-							Username: <input type="text" name="new_uname" id="new_uname"/></br><br/>
-							First Name: <input type="text" name="new_fname" id="new_fname"/></br><br/>
-							Last Name: <input type="text" name="new_lname" id="new_lname"/></br><br/>
-							<input type="submit" name="updateNames" value="Update Name/Username"/></br>
-							</form><br/>
-						<?php } ?>
-					
-					<?php } //Close out beta features block ?>
-					
-					<!-- Profile Pictures -->
-					<br/><h2><i>Change Your Profile Picture</i></h2><br/>
-					<h3>Upload photo</h3>
-					<p>Profile pictures cannot contain:
-					<ul>
-					<li>Gore</li>
-					<li>Suggestive imagery</li>
-					<li><strike>Memes</strike></li>
-					</ul>
-					This system is monitored and violation of the above rules will be cause for immediate warning upon the first offense, and
-					loss of profile picture privileges upon the second.<br/><br/>
-					Note that the optimal image size is 100px by 100px.
-					Check the player list to see if your profile picture has updated, if it has not try updating it again.
-					</p>
-					<form method="post" enctype="multipart/form-data">
-					<input type="file" name="image" id="image"/><br/>
-					<input type="submit" name="profilePicture" value="Submit"/>
-					</form>
-					<br/>
+            <h3 style="margin-top:1.5rem;">Earned Achievements</h3>
+            <?php printAchieveTable(); ?>
+          </div>
 
-					<!-- Select Favorite Achievement possible 500 error location -->
-					<br/><h2><i>Achievements</i></h2><br/>
-					<h3>Select favorite achievement.</h3>
-					<form action="/myProfile.php" method="post">
-					Achievement: <select name="achieve">
-						<?php
-						generateList();
-						?>
-					</select><br/>
-					<input type="submit" name="favoriteAchieve" value="Submit"></input>
-					</form>
-					<br/>
-					<br/>
+        <?php } else { ?>
+          <div class="card">
+            <p>Please <a href="/register.php">sign in</a> to see your profile.</p>
+          </div>
+        <?php } ?>
+      <?php } ?>
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
 
-					<h3>Current favorite achievement</h3>
-					<?php displayFavAchievement(); ?>
-					<br/>
-
-					<br/>
-					<h3>Currently Earned Achievements</h3>
-					<?php printAchieveTable();?>
-
-				<?php
-				}else{
-					echo "Please sign in to see your profile.";
-				}
-			}//else{
-				//echo "Access to this page has been temporarily restricted to administrator-only while undergoing maintenance.";
-			//}
-			?>
-		</div>
-		<?php printSidebar(); 
-		?>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+<script src="/js/main.js"></script>
 </body>
 </html>

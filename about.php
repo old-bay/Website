@@ -1,51 +1,59 @@
 <?php
 require_once('pageIncludes/about.inc.php');
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ - FAQs</title>
+  <meta name="description" content="Frequently asked questions about the UMBC Humans vs. Zombies club.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<a name="top"></a>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
 
-			<h1 style="text-align:center; margin-top: 10px;"><b>FAQs</b></h1><br/><br/>
-	
-			<br/>
-			<ul style="text-align: left;">
-			<?php
-			foreach($questions as $question){
-				echo "<li><h4><a href=\"#Q{$question['number']}\">{$question['title']}</a></h4></li>";
-			}
-			?>
-			</ul>
-			<p><br clear="right" /></p>
-			<hr/>
-			<?php
-			foreach($questions as $question){
-				echo "<a name=\"Q{$question['number']}\"></a><h2>{$question['title']}</h2>";
-				echo "<p>{$question['answer']}</p>";
-				//echo '<a href="#top">To Top</a>;
-				echo '<br/><br/>';
-			}
-			?>
-		</div>
-		<?php printSidebar(); ?>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
+<section class="page-header">
+  <div class="container">
+    <h1>Frequently Asked Questions</h1>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+
+      <nav class="card" aria-label="FAQ navigation">
+        <h2>Questions</h2>
+        <ul>
+          <?php foreach($questions as $question): ?>
+          <li><a href="#Q<?php echo $question['number']; ?>"><?php echo htmlspecialchars($question['title']); ?></a></li>
+          <?php endforeach; ?>
+        </ul>
+      </nav>
+
+      <?php foreach($questions as $question): ?>
+      <div class="card" id="Q<?php echo $question['number']; ?>">
+        <h2><?php echo htmlspecialchars($question['title']); ?></h2>
+        <div><?php echo $question['answer']; ?></div>
+        <p><a href="#main-content" style="font-size:0.85rem;">↑ Back to top</a></p>
+      </div>
+      <?php endforeach; ?>
+
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+<script src="/js/main.js"></script>
 </body>
 </html>

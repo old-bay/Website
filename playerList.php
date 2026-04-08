@@ -1,57 +1,54 @@
 <?php
 require_once('pageIncludes/playerList.inc.php');
-if (isset($_SESSION['UID'])) {
-    $UID = $_SESSION['UID'];
-    $playerData = mysql_oneline("SELECT * FROM `users` WHERE `UID`='$UID'");
-} else {
-    $UID = null;
-    $playerData = array();
-}
 ?>
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ - Player List</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ - Player List</title>
+  <meta name="description" content="Current UMBC HvZ player roster and stats.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
-			<h1 style="text-align:center; margin-top: 10px;"><b>Player List</b></h1><br/>
-			<form>
-			<b>Order By:</b>
-			<input type="radio" name="order" value="name"/> Name
-			<input type="radio" name="order" value="kills"/> Kill Count
-			<input type="radio" name="order" value="survived"/> Days Survived
-			<input type="radio" name="order" value="creation"/> Account Creation Time
-			&nbsp;&nbsp;&nbsp;&nbsp;<input type="submit" value="Submit" name="submit"/>
-			</form><br/>
-			<?php		
-			printPlayerTable();
-			?>
-		</div>
-		<div id="sidebar">
-			<div class="section1">
-				<?php displayLoginForm();?>
-			</div>
-			<br />
-			<div class="section4">
-				<?php retrieveSlides();?>
-			</div>
-		</div>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
+
+<section class="page-header">
+  <div class="container">
+    <h1>Player List</h1>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <div class="card">
+        <form>
+          <strong>Order by:</strong>
+          <label style="margin: 0 0.5rem;"><input type="radio" name="order" value="name"> Name</label>
+          <label style="margin: 0 0.5rem;"><input type="radio" name="order" value="kills"> Kill Count</label>
+          <label style="margin: 0 0.5rem;"><input type="radio" name="order" value="survived"> Days Survived</label>
+          <label style="margin: 0 0.5rem;"><input type="radio" name="order" value="creation"> Account Creation</label>
+          <button type="submit" name="submit" class="btn btn-outline" style="margin-left:0.5rem;">Sort</button>
+        </form>
+      </div>
+      <div class="table-wrapper">
+        <?php printPlayerTable(); ?>
+      </div>
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+<script src="/js/main.js"></script>
 </body>
 </html>

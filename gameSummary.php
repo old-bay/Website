@@ -1,54 +1,68 @@
 <?php
-require_once('../pageIncludes/gameSummary.inc.php'); //MAKE SURE THIS FILE PATH IS ACTUALLY CORRECT
+require_once('pageIncludes/gameSummary.inc.php');
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ - Game Summaries</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ - Game Summaries</title>
+  <meta name="description" content="Long game logs and summaries.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<a name="top"></a>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
-		
-		<?php if($_SESSION['isAdmin'] >= 1 || $_SESSION['isBetaTester'] >= 1) { ?>
-			<h2>Long Game Logs</h2><br/><br/>
-			
-			Select a long game from the menu below to view the log of that game. 
-			Due to a bug involving previous legacy mechanics, data on the time of kills from 2016-2021
-			is very likely inaccurate and possibly missing. For player status changes that have accurate 
-			time log data, the time recorded is the time that it was logged on this website, 
-			not necessarily the time that this change occurred within the game.<br/>
-			
-			<?php
-			echo '<select name="longGameSelect" id="sel"/>';
-			$qret = mysql_query("SELECT * FROM long_games WHERE 1 ORDER BY startDate DESC;");
-			while($ret = mysql_fetch_assoc($qret)){
-				$id = $ret['gameID'];
-				$name = $ret['title'];
-				echo "<option value=\"$id\">$name</option>";
-			}
-			echo '</select>';
-			?>
-			
-			</div>
-			<?php printSidebar(); 
-			?>
-		
-		<?php } ?>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
+
+<section class="page-header">
+  <div class="container">
+    <h1>Long Game Logs</h1>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <?php if($_SESSION['isAdmin'] >= 1 || $_SESSION['isBetaTester'] >= 1): ?>
+      <div class="card">
+        <p>
+          Select a long game below to view its log. Due to a bug involving legacy mechanics,
+          data on kill times from 2016&ndash;2021 is very likely inaccurate and possibly missing.
+          Accurate time data records the time it was <em>logged on this website</em>, not necessarily
+          when the change occurred in-game.
+        </p>
+        <div class="form-group">
+          <label for="longGameSelect">Select game</label>
+          <select class="form-control" name="longGameSelect" id="longGameSelect">
+            <?php
+            $qret = mysql_query("SELECT * FROM long_games WHERE 1 ORDER BY startDate DESC;");
+            while($ret = mysql_fetch_assoc($qret)){
+              $id   = htmlspecialchars($ret['gameID']);
+              $name = htmlspecialchars($ret['title']);
+              echo "<option value=\"$id\">$name</option>";
+            }
+            ?>
+          </select>
+        </div>
+      </div>
+      <?php else: ?>
+      <div class="card">
+        <p>You do not have permission to view this page.</p>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+<script src="/js/main.js"></script>
 </body>
 </html>

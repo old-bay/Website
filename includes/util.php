@@ -426,20 +426,31 @@ function secondsToHumanReadable($posted){
 }
 
 function printSidebar() {
-	echo "<div id=\"sidebar\">";
-	echo "<div class=\"section1\">";
+	echo '<aside class="sidebar">';
+	echo '<div class="sidebar-card">';
 	displayLoginForm();
-	echo "</div><br /><div class=\"section1\">";
+	echo '</div>';
+	echo '<div class="sidebar-card">';
 	displayVotingLink();
-	//echo "</div><br /><div class=\"section1\">";
-	//displayActivePoll();
-	echo "<br/></div><div class=\"section4\">";
+	echo '</div>';
+	echo '<div class="sidebar-card">';
 	retrieveSlides();
-	echo "</div></div>";
+	echo '</div>';
+	echo '</aside>';
 }
 
 function printFooter() {
-	echo "<p>UMBC HvZ REVISION: Art assets borrowed from <a href=\"http://www.nodethirtythree.com/\">nodethirtythree</a>.-Vs</p>";
+	echo '<div class="container footer-inner">';
+	echo '<ul class="footer-links">';
+	echo '<li><a href="/home.php">Home</a></li>';
+	echo '<li><a href="/rules.html">Rules</a></li>';
+	echo '<li><a href="/news.php">News</a></li>';
+	echo '<li><a href="/about.php">FAQs</a></li>';
+	echo '<li><a href="/achievements.php">Achievements</a></li>';
+	echo '<li><a href="/contact.html">Meet the Admins</a></li>';
+	echo '</ul>';
+	echo '<p class="footer-copyright">UMBC HvZ &mdash; Art assets borrowed from <a href="http://www.nodethirtythree.com/">nodethirtythree</a>.</p>';
+	echo '</div>';
 }
 
 //Page displaying shortcuts
@@ -454,22 +465,22 @@ function displayLoginForm(){
 }
 
 function displayVotingLink() {
-	echo "<h2>Elections</h2>";
-	
+	echo '<h3>Elections</h3>';
+
 	$settings = get_settings();
 	$voteLink = $settings['showVotingLink'];
-	if($voteLink == "soonOpen" or $voteLink == "soonClosed") {
-		echo "<center><font size='4'><b>Voting opening soon</b></font></center>";
-	} else if($voteLink == "open") {
-		echo "<center><font size='3'><b>Voting is now open!</b></font></center>";
+	if($voteLink == "soonOpen" || $voteLink == "soonClosed") {
+		echo '<p class="text-center"><strong>Voting opening soon</strong></p>';
+	} elseif($voteLink == "open") {
+		echo '<p class="text-center"><strong>Voting is now open!</strong></p>';
 	}
-	
-	if($voteLink == "soonOpen" or $voteLink == "open") {
-		echo "<center><a href='https://umbchvz.com/voting.php'>Voting page</a></center>";
-	}else if($voteLink == "closed" or $voteLink == "soonClosed") {
-		echo "<center><font size='4'><b>No elections in progress</b></font></center>";
-	} else { //Aaaaaaaaaaaaaaaaaa
-		echo "<center><font size='4'><b>Unknown status of elections</b></font></center>";
+
+	if($voteLink == "soonOpen" || $voteLink == "open") {
+		echo '<p class="text-center"><a href="/voting.php">Voting page</a></p>';
+	} elseif($voteLink == "closed" || $voteLink == "soonClosed") {
+		echo '<p class="text-muted text-center">No elections in progress.</p>';
+	} else {
+		echo '<p class="text-muted text-center">Unknown status of elections.</p>';
 	}
 }
 
@@ -480,73 +491,54 @@ function displayActivePoll(){
 }
 
 function pageHeader(){
+	$page = $_SERVER['PHP_SELF'];
+	$nav = array(
+		'/home.php'         => 'Home',
+		'/rules.html'       => 'Rules',
+		'/news.php'         => 'News',
+		'/myProfile.php'    => 'My Profile',
+		'/playerList.php'   => 'Players',
+		'/about.php'        => 'FAQs',
+		'/missionTools.php' => 'Mission Toolkit',
+		'/contact.html'     => 'Admins',
+		'/achievements.php' => 'Achievements',
+	);
+	// Pages that should mark the same nav item as active
+	$aliases = array(
+		'/rules.php'   => '/rules.html',
+		'/contact.php' => '/contact.html',
+	);
+	$activePage = isset($aliases[$page]) ? $aliases[$page] : $page;
 	?>
-	<div id="header" class="container">
-		<div id="menu">
-			<ul>
-				<?php
-				$page = $_SERVER['PHP_SELF'];
-				
-				echo '<li';
-				if($page=="/home.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/home.php">Home</a></li>';
-				
-				echo '<li';
-				if($page=="/rules.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/rules.php">The Rules</a></li>';
-				
-				echo '<li';
-				if($page=="/news.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/news.php">News</a></li>';
-				
-				echo '<li';
-				if($page=="/myProfile.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/myProfile.php">My Profile</a></li>';
-				
-				echo '<li';
-				if($page=="/playerList.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/playerList.php">Players</a></li>';
-				
-				echo '<li';
-				if($page=="/about.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/about.php">FAQs</a></li>';
-				
-				echo '<li';
-				if($page=="/missionTools.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/missionTools.php">Mission Toolkit</a></li>';
-				
-				echo '<li';
-				if($page=="/contact.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/contact.php">Meet the Admins</a></li>';
-				
-				echo '<li';
-				if($page=="/achievements.php"){
-					echo ' class="active"';
-				}
-				echo '><a href="/achievements.php">Achievements</a></li>';
-				?>
-			</ul>
-		</div>
-		<div id="logo">
-			<a href="/home.php"><image src="/images/hvzLogo.png" style="height:150px; width:150px; margin-top:20px;"></image></a>
-		</div>
-	</div>
+	<header class="site-header">
+	  <div class="container header-inner">
+	    <a href="/home.php" class="logo">
+	      <img src="/images/hvzLogo.png" alt="UMBC HvZ Logo" width="48" height="48">
+	      <span class="logo-text">UMBC <span>HvZ</span></span>
+	    </a>
+	    <nav class="main-nav" aria-label="Primary navigation">
+	      <ul>
+	        <?php foreach($nav as $href => $label): ?>
+	        <li><a href="<?php echo $href; ?>"<?php if($activePage === $href) echo ' class="active"'; ?>><?php echo $label; ?></a></li>
+	        <?php endforeach; ?>
+	      </ul>
+	    </nav>
+	    <button class="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav">
+	      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+	        <line x1="3" y1="6" x2="21" y2="6"/>
+	        <line x1="3" y1="12" x2="21" y2="12"/>
+	        <line x1="3" y1="18" x2="21" y2="18"/>
+	      </svg>
+	    </button>
+	  </div>
+	  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+	    <ul>
+	      <?php foreach($nav as $href => $label): ?>
+	      <li><a href="<?php echo $href; ?>"<?php if($activePage === $href) echo ' class="active"'; ?>><?php echo $label; ?></a></li>
+	      <?php endforeach; ?>
+	    </ul>
+	  </nav>
+	</header>
 	<?php
 }
 

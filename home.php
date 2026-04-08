@@ -1,85 +1,89 @@
 <?php
 require_once('pageIncludes/home.inc.php');
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ</title>
+  <meta name="description" content="Official website for the UMBC Humans vs. Zombies club.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<a name="top"></a>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
-		</br>
-		<h1 font="Cambria"><center>Welcome to UMBC HvZ</center></h1>
-		
-		<br/>
-		<img src="images/vet.png" style="height:200px; width:125px; padding-left: 140px;"></img></br>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
 
-		<!-- UNCOMMENT FOR WEATHER BASED MISSION CANCELING* -->
-	 	<!-- <p><center><h2><i><b>*Tonight's Mission has been canceled*</b></i></h2>
-		<h3><b>UMBC HvZ does not meet when campus is closed!</b></h3></br></center></p>
-		<p> -->
-		<i><h4><center>~Check out our Discord server <a href="https://discord.gg/MCfXax2">here</a>~</center></h4></i>
-		<i><h4><center>~Check out our Instagram <a href="https://www.instagram.com/umbchvzclub/">here</a>~</center></h4></i>
-		<!-- <i><h4><center>~Check out our Facebook Player Forum <a href="https://www.facebook.com/groups/1761359610834884/">here</a>~</center></h4></i> -->
-		<i><h4><center>~To submit mission feedback, <a href="https://docs.google.com/forms/d/e/1FAIpQLSezwNYkhRPnGL-J7iQ6SAudrSNoiXXELAzOQdLtnGHo4dVAaA/viewform?usp=header">click here</a>~</center></h4></i>
-		<!-- <i><h4><center>~To order a club T-shirt, <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6eRuP4zEuLcLSC1bXqZ9GzF8ZDZn1QHjSR_pS8lH6lHtsmQ/viewform">click here</a>~</center></h4></i> -->
-		<!-- <i><h4><center>~To submit invitational feedback, <a href="https://docs.google.com/forms/d/e/1FAIpQLSdSAfolSJBRFTghMTa3onH7dMgtcM94CWpcbJLT6tz8uqkTwQ/viewform">click here</a>~</center></h4></i> -->
-		<!-- <i><h4><center>~To suggest features for the new website, <a href="https://docs.google.com/forms/d/e/1FAIpQLScKT4b50vOXx9j27lBiHEuiwlocDsEsMWFnCVVj0YmIuke0nw/viewform">click here</a>~</center></h4></i>
-		<i><h4><center>~To apply to be a Subofficer in the upcoming semester, <a href="https://docs.google.com/forms/d/e/1FAIpQLSdkAhWd5px2AqJIc6qgHsfo67o-eqJDljcuO3HQaEJnt9kMwQ/viewform">click here</a>~</center></h4></i> -->
-		<!-- <i><h4><center>~To apply to be on the Web Committee in the upcoming semester, <a href="https://drive.google.com/open?id=1e_mzBN0uI7mbdW-3IWyCJ_KapFDEBo11ib43skbVJg0/viewform">click here</a>~</center></h4></i> -->
-		<i><h4><center>~To register for our annual invitational game, <a href="https://forms.gle/LFJcg9Kjm8ut1Cuz7">click here</a>~</center></h4></i>
-		<!--<i><h4><center>~To submit weeklong feedback, <a href="https://docs.google.com/forms/d/e/1FAIpQLSdXxzvZDpIYisvHp0rphLwblbtqUEony5MH1dN55niz8wxn6Q/viewform">click here</a>~</center></h4></i>-->
-		<i><h4><center>~For information on UMBC's response to the ongoing pandemic, <a href="https://covid19.umbc.edu">click here</a>~</center></h4></i>
-		
-		<br/>
-		<b><font size="4">Mission Info:</font></b><br/>
-		Mondays - 7:00 pm - SOND 109<br/>
-		Thursdays - 7:00 pm - SOND 109 <br/>
-		<i>Check the sidebar for this week's planned missions<br/></i>
-		<!-- <br/><b>These locations are tentative and are likely to change in the next few days</b><br/> -->
-		<br/>
-		<!--<h4><b>As a result of the COVID-19 outbreak, UMBC student organization activities have been restricted to 
-		virtual-only for the time being. We will not be holding any in-person events until this changes. 
-		For more information about our virtual events, check out our discord server 
-		<a href='https://discord.gg/MCfXax2'>here</a>.
-		For more information about what UMBC is doing in response to the 
-		COVID-19 outbreak, visit <a href='https://covid19.umbc.edu'>this</a> page.<br/>
-		</b></h4> -->
-		<h4>ALL TOY BLASTERS are banned on UMBC campus as it regards our normal gameplay. Please do not bring a blaster to a club meeting as we will have to ask you to put it away and return it to your car or dorm. Our normal gameplay will for now consist of throwables and throwing darts. We are working on this, thank you.<b>
-		</b></h4>
-		</p>
-		<br/>
-		<p>
-		<b><font size="4">Open Community Meeting Info:</font></b><br/>
-		<!--Held online via our Discord, keep an eye out for more details in the club emails.--> 
-		Every Sunday (while spring & fall classes are in session) at 1:00 pm - SOND 109. You can also attend online via our Discord. <br/>
-		</p>
-		<p>
-		<b><font size="4">Premise:</font></b><br/>
-		Humans vs. Zombies is a recreational game that combines elements of Nerf wars, manhunt, tag, and capture the flag with unique
-		mechanics. Humans must complete a wide variety of objectives while fending off zombies - who are constantly trying to infect the
-		humans, and thus add to the horde. For a more complete description of the rules, visit our <a href="rules.php">rules page</a>.
-		</p>
-		
-		</div>
-		<?php printSidebar(); 
-		?>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
+<section class="hero">
+  <div class="container">
+    <img src="/images/hvzLogo.png" alt="" class="hero-logo" width="120" height="120">
+    <h1>Welcome to UMBC HvZ</h1>
+    <p>Humans vs. Zombies at the University of Maryland, Baltimore County</p>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+
+      <div class="quick-links">
+        <a href="https://discord.gg/MCfXax2" target="_blank" rel="noopener noreferrer">Discord Server</a>
+        <a href="https://www.instagram.com/umbchvzclub/" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSezwNYkhRPnGL-J7iQ6SAudrSNoiXXELAzOQdLtnGHo4dVAaA/viewform?usp=header" target="_blank" rel="noopener noreferrer">Mission Feedback</a>
+        <a href="https://forms.gle/LFJcg9Kjm8ut1Cuz7" target="_blank" rel="noopener noreferrer">Invitational Registration</a>
+        <a href="https://covid19.umbc.edu" target="_blank" rel="noopener noreferrer">UMBC COVID-19 Info</a>
+      </div>
+
+      <div class="notice">
+        <strong>Important:</strong> ALL TOY BLASTERS are banned on UMBC campus for normal gameplay.
+        Please do not bring a blaster to a club meeting. Normal gameplay consists of throwables and throwing darts.
+        We are working on this, thank you.
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>Mission Schedule</h3>
+          <p>
+            Mondays &mdash; 7:00 PM &mdash; SOND 109<br>
+            Thursdays &mdash; 7:00 PM &mdash; SOND 109<br>
+            <em>Check the sidebar for this week's planned missions.</em>
+          </p>
+        </div>
+        <div class="info-card">
+          <h3>Community Meetings</h3>
+          <p>
+            Every Sunday (while spring &amp; fall classes are in session) at 1:00 PM &mdash; SOND 109.<br>
+            You can also attend online via our Discord.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What is Humans vs. Zombies?</h2>
+        <p>
+          Humans vs. Zombies is a recreational game that combines elements of Nerf wars, manhunt, tag,
+          and capture the flag with unique mechanics. Humans must complete a wide variety of objectives
+          while fending off zombies &mdash; who are constantly trying to infect the humans, and thus add
+          to the horde.
+        </p>
+        <p>
+          For a more complete description of the rules, visit our <a href="/rules.html">rules page</a>.
+        </p>
+      </div>
+
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+<script src="/js/main.js"></script>
 </body>
 </html>

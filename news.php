@@ -10,52 +10,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['postID'])) {
     }
 }
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><?php placeTabIcon(); ?>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>UMBC HvZ - News</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'/>
-<?php htmlHeader(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php placeTabIcon(); ?>
+  <title>UMBC HvZ - News</title>
+  <meta name="description" content="Latest news and announcements from the UMBC Humans vs. Zombies club.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <?php htmlHeader(); ?>
 </head>
 <body>
-<div id="wrapper">
-	<?php pageHeader(); ?>
-	<div id="page" class="container">
-		<div id="content">
-			<?php displayPosts(0,5); ?>
-		</div>
-		<?php printSidebar(); ?>
-		<div class="clearfix">&nbsp;</div>
-	</div>
-	<div id="footer" class="container">
-		<?php printFooter(); ?>
-	</div>
-</div>
-</body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<?php pageHeader(); ?>
+
+<section class="page-header">
+  <div class="container">
+    <h1>News &amp; Announcements</h1>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <?php displayPosts(0, 5); ?>
+    </div>
+    <?php printSidebar(); ?>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <?php printFooter(); ?>
+</footer>
+
 <form id="deleteForm" method="post" style="display:none">
-    <input type="hidden" name="postID" id="deletePostID" value="">
+  <input type="hidden" name="postID" id="deletePostID" value="">
 </form>
-</html>
 
+<script src="/js/main.js"></script>
 <script defer>
-	var deleteButtons = document.getElementsByClassName("delete");
-	var confirmButtons = document.getElementsByClassName("confirm");
+var deleteButtons = document.getElementsByClassName("delete");
+var confirmButtons = document.getElementsByClassName("confirm");
+var isAdmin = <?php echo (isset($_SESSION['isAdmin']) && $_SESSION['isAdmin'] >= 2) ? 'true' : 'false'; ?>;
 
-    var isAdmin = <?php echo (isset($_SESSION['isAdmin']) && $_SESSION['isAdmin'] >= 2) ? 'true' : 'false'; ?>;
-
-	for(let i = 0; i < deleteButtons.length; i++) {
-  		deleteButtons[i].onclick = function() {
-    		confirmButtons[i].style.display = "inline-block";
-		}
-
-		confirmButtons[i].onclick = function() {
-			if (!isAdmin) return;
-			document.getElementById('deletePostID').value = confirmButtons[i].id;
-			document.getElementById('deleteForm').submit();
-		}
-	}
+for(let i = 0; i < deleteButtons.length; i++) {
+  deleteButtons[i].onclick = function() {
+    confirmButtons[i].style.display = "inline-block";
+  };
+  confirmButtons[i].onclick = function() {
+    if (!isAdmin) return;
+    document.getElementById('deletePostID').value = confirmButtons[i].id;
+    document.getElementById('deleteForm').submit();
+  };
+}
 </script>
+</body>
+</html>

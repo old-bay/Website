@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Player List</title>
+  <meta name="description" content="Current UMBC HvZ player roster and stats.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Player List</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <div class="card">
+        <strong>Order by:</strong>
+        <label style="margin:0 0.5rem;"><input type="radio" name="order" value="name" checked> Name</label>
+        <label style="margin:0 0.5rem;"><input type="radio" name="order" value="kills"> Kill Count</label>
+        <label style="margin:0 0.5rem;"><input type="radio" name="order" value="survived"> Days Survived</label>
+        <label style="margin:0 0.5rem;"><input type="radio" name="order" value="creation"> Account Creation</label>
+        <button class="btn btn-outline" style="margin-left:0.5rem;" onclick="loadPlayers()">Sort</button>
+      </div>
+      <div id="player-counts" style="display:none;" class="card"></div>
+      <div class="table-wrapper" id="player-table"><p class="text-muted" style="padding:1rem;">Loading...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+async function loadPlayers() {
+  const order = document.querySelector('input[name="order"]:checked').value;
+  const data = await HvZ.get('/api/players?order=' + order);
+  const countsEl = document.getElementById('player-counts');
+  const tableEl = document.getElementById('player-table');
+
+  if (data.activeLongGame) {
+    countsEl.style.display = 'block';
+    countsEl.innerHTML = `<strong>${HvZ.escapeHtml(data.activeLongGame.title)}</strong> &mdash; Humans: ${data.humanCount} | Zombies: ${data.zombieCount}`;
+  }
+
+  if (data.players.length === 0) { tableEl.innerHTML = '<p class="text-muted">No players found.</p>'; return; }
+
+  const hasState = data.activeLongGame;
+  let html = '<table class="table"><thead><tr>';
+  html += '<th>Picture</th><th>Name</th>';
+  if (hasState) html += '<th>State</th><th>Kills</th><th>Day</th>';
+  html += '<th>Lifetime Kills</th><th>Achievement</th></tr></thead><tbody>';
+  for (const p of data.players) {
+    html += '<tr>';
+    html += `<td><img src="/images/profilePictures/${p.picture}" alt="" width="50" height="50" style="border-radius:4px;"></td>`;
+    html += `<td>${HvZ.escapeHtml(p.fname)} ${HvZ.escapeHtml(p.lname)}<br><small class="text-muted">${HvZ.escapeHtml(p.uname)}</small></td>`;
+    if (hasState) {
+      html += `<td>${p.state || ''}</td><td>${p.kills || 0}</td><td>${p.longestDaySurvived || 0}</td>`;
+    }
+    html += `<td>${p.lifetimeKills || 0}</td>`;
+    html += `<td>${p.favAchieveImage ? `<img src="/images/achievements/${p.favAchieveImage}" title="${HvZ.escapeHtml(p.favAchieveName || '')}" width="40" height="40">` : ''}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  tableEl.innerHTML = html;
+}
+document.addEventListener('DOMContentLoaded', loadPlayers);
+</script>
+</body>
+</html>

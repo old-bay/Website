@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Humans vs. Zombies</title>
+  <meta name="description" content="Official website for the UMBC Humans vs. Zombies club.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="hero">
+  <div class="container">
+    <h1>UMBC Humans vs. Zombies</h1>
+    <p class="hero-subtitle">Tag games meet Nerf wars. Survive the apocalypse on campus.</p>
+    <div class="hero-actions">
+      <a href="/register" class="btn btn-primary btn-lg">Join Now</a>
+      <a href="/rules" class="btn btn-outline btn-lg">Read the Rules</a>
+    </div>
+  </div>
+</section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <div class="card">
+        <h2>Quick Links</h2>
+        <div class="quick-links">
+          <a href="https://discord.gg/umbchvz" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Discord</a>
+          <a href="https://www.instagram.com/umbchvz/" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Instagram</a>
+        </div>
+      </div>
+
+      <div class="notice" style="margin-bottom:1.5rem;">
+        <strong>Attention:</strong> All blasters must be inspected and approved by officers before use in any game.
+      </div>
+
+      <div class="info-grid">
+        <div class="card">
+          <h2>Mission Schedule</h2>
+          <p>Missions typically run <strong>Monday and Thursday evenings</strong> during the semester. Check the slides in the sidebar for the current schedule.</p>
+        </div>
+        <div class="card">
+          <h2>Community Meetings</h2>
+          <p>Community meetings are held regularly. Attend 5 across the current and previous semester to become a voting member.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What is HvZ?</h2>
+        <p>Humans vs. Zombies is a game of tag played across the UMBC campus. Humans defend themselves with Nerf blasters and sock balls, while Zombies spread the horde by tagging Humans. Missions add objectives, alliances, and chaos.</p>
+        <p><a href="/about">Read our FAQ &rarr;</a></p>
+      </div>
+
+      <div class="card">
+        <h2>Latest News</h2>
+        <div id="home-news"><p class="text-muted">Loading...</p></div>
+      </div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const data = await HvZ.get('/api/news?limit=3');
+    const el = document.getElementById('home-news');
+    if (data.posts.length === 0) { el.innerHTML = '<p class="text-muted">No news yet.</p>'; return; }
+    el.innerHTML = data.posts.map(p => `
+      <article class="news-post">
+        <h3>${HvZ.escapeHtml(p.title)}</h3>
+        <p class="text-muted">By ${HvZ.escapeHtml(p.author)} &mdash; ${p.postedAgo}</p>
+        <div>${p.content}</div>
+      </article>`).join('<hr style="border-color:var(--color-border);margin:1rem 0;">');
+    el.innerHTML += '<p><a href="/news">View all news &rarr;</a></p>';
+  } catch (e) { document.getElementById('home-news').innerHTML = '<p class="text-muted">Could not load news.</p>'; }
+});
+</script>
+</body>
+</html>

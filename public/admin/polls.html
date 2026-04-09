@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Poll Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Poll Management</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const questions = await HvZ.get('/api/admin/polls');
+    const opts = questions.map(q => `<option value="${q.QID}">${HvZ.escapeHtml(q.question)}</option>`).join('');
+    let html = `
+      <div class="card"><h2>Create New Question</h2>
+        <form onsubmit="return sub(event,'/api/admin/polls/question',{question:this.question.value})">
+          <div class="form-group"><label>Question</label><input class="form-control" name="question" required></div>
+          <button type="submit" class="btn btn-primary">Create</button></form></div>
+      <div class="card"><h2>Add Option to Question</h2>
+        <form onsubmit="return sub(event,'/api/admin/polls/option',{qid:this.qid.value,option:this.option.value})">
+          <div class="form-group"><label>Question</label><select class="form-control" name="qid">${opts}</select></div>
+          <div class="form-group"><label>Option Text</label><input class="form-control" name="option" required></div>
+          <button type="submit" class="btn btn-primary">Add Option</button></form></div>
+      <div class="card"><h2>Set Active Question</h2>
+        <form onsubmit="return sub(event,'/api/admin/polls/set-active',{qid:this.qid.value})">
+          <div class="form-group"><label>Question</label><select class="form-control" name="qid">${opts}</select></div>
+          <button type="submit" class="btn btn-primary">Set Active</button></form></div>
+      <div class="card"><h2>View Results</h2>
+        <div class="form-group"><select class="form-control" id="viewQid">${opts}</select></div>
+        <button class="btn btn-outline" onclick="viewResults()">View</button>
+        <div id="results"></div></div>`;
+    area.innerHTML = html;
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+async function sub(e,url,body){e.preventDefault();await HvZ.post(url,body);alert('Done!');location.reload();return false;}
+async function viewResults(){const qid=document.getElementById('viewQid').value;const r=await HvZ.get('/api/admin/polls/'+qid+'/results');document.getElementById('results').innerHTML='<ul>'+r.map(o=>`<li>${HvZ.escapeHtml(o.option)}: ${o.votes} votes</li>`).join('')+'</ul>';}
+</script>
+</body>
+</html>

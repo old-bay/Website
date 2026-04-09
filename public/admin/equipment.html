@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Equipment Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Equipment Management</h1></div></section>
+<main id="main-content">
+  <div class="container">
+    <div class="card"><h2>Return Equipment</h2>
+      <form onsubmit="return returnEquip(event)">
+        <div class="form-group"><label>Equipment ID</label><input class="form-control" name="equipmentID" required></div>
+        <button type="submit" class="btn btn-primary">Return</button>
+      </form><div id="return-msg"></div></div>
+    <div class="card"><h2>Equipment Status</h2>
+      <form onsubmit="return checkEquip(event)">
+        <div class="form-group"><label>Equipment ID</label><input class="form-control" name="eid" required></div>
+        <button type="submit" class="btn btn-outline">Check</button>
+      </form><div id="status-msg"></div></div>
+    <div class="card"><h2>Player Equipment</h2>
+      <form onsubmit="return playerEquip(event)">
+        <div class="form-group"><label>Player ID (username/email)</label><input class="form-control" name="pid" required></div>
+        <button type="submit" class="btn btn-outline">Look up</button>
+      </form><div id="player-msg"></div></div>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+async function returnEquip(e){e.preventDefault();const fd=new FormData(e.target);try{const r=await HvZ.post('/api/admin/equipment/return',{equipmentID:fd.get('equipmentID')});document.getElementById('return-msg').innerHTML=`<p>Returned from ${HvZ.escapeHtml(r.previousOwner||'unknown')}</p>`;}catch(err){document.getElementById('return-msg').innerHTML=`<p style="color:var(--color-accent);">${err.error}</p>`;}return false;}
+async function checkEquip(e){e.preventDefault();const fd=new FormData(e.target);try{const r=await HvZ.get('/api/admin/equipment/status/'+fd.get('eid'));document.getElementById('status-msg').innerHTML=`<p>Loaned to: ${HvZ.escapeHtml(r.name||r.loanedTo)}</p>`;}catch(err){document.getElementById('status-msg').innerHTML=`<p style="color:var(--color-accent);">${err.error}</p>`;}return false;}
+async function playerEquip(e){e.preventDefault();const fd=new FormData(e.target);try{const r=await HvZ.get('/api/admin/equipment/player/'+encodeURIComponent(fd.get('pid')));document.getElementById('player-msg').innerHTML=`<p>${HvZ.escapeHtml(r.player)} has ${r.items.length} item(s): ${r.items.map(i=>i.EID).join(', ')||'none'}</p>`;}catch(err){document.getElementById('player-msg').innerHTML=`<p style="color:var(--color-accent);">${err.error}</p>`;}return false;}
+</script>
+</body>
+</html>

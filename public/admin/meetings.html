@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Meeting Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Meeting Management</h1></div></section>
+
+<main id="main-content">
+  <div class="container" id="admin-area"><div class="card"><p class="text-muted">Loading...</p></div></div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('admin-area');
+  try {
+    const data = await HvZ.get('/api/admin/meetings');
+    const opts = data.unresolved.map(m => `<option value="${m.meetingID}">${HvZ.escapeHtml(m.meetingName)} - ${m.creationDate}</option>`).join('');
+    const allOpts = data.all.map(m => `<option value="${m.meetingID}">${HvZ.escapeHtml(m.meetingName)} - ${m.creationDate}</option>`).join('');
+
+    let html = `
+    <div class="card"><h2>Sign Player In</h2>
+      <form id="signin-form">
+        <div class="form-group"><label>Meeting</label><select class="form-control" name="meetingSelect">${opts}</select></div>
+        <div class="form-group"><label>Player ID (username or email)</label><input class="form-control" type="text" name="playerID" required></div>
+        <div class="form-group"><label>State</label>
+          <select class="form-control" name="state">
+            <option value="1">Human</option><option value="2">OZ (Hidden)</option><option value="-1">Zombie</option>
+            <option value="4">Moderator</option><option value="0">N/A</option>
+          </select></div>
+        <div id="signin-msg"></div>
+        <button type="submit" class="btn btn-primary">Sign player in</button>
+      </form></div>
+
+    <div class="card"><h2>Create New Meeting</h2>
+      <form id="create-form">
+        <div class="form-group"><label>Meeting Name</label><input class="form-control" type="text" name="meetingName" required></div>
+        <div class="form-group"><label>Type</label>
+          <select class="form-control" name="meetingType">
+            <option value="mission">Mission</option><option value="admin">Community Meeting</option>
+            <option value="nominal">Nominal</option><option value="other">Other</option>
+          </select></div>
+        <button type="submit" class="btn btn-primary">Create meeting</button>
+      </form></div>
+
+    <div class="card"><h2>Resolve Meeting</h2>
+      <form id="resolve-form">
+        <div class="form-group"><label>Meeting</label><select class="form-control" name="meetingSelect">${opts}</select></div>
+        <div class="form-group"><label>Outcome</label>
+          <select class="form-control" name="winner"><option value="1">Humans won</option><option value="2">Zombies won</option><option value="0">Other</option></select></div>
+        <button type="submit" class="btn btn-primary">Resolve meeting</button>
+      </form></div>
+
+    <div class="card"><h2>View Attendance</h2>
+      <div class="form-group"><label>Meeting</label><select class="form-control" id="viewSelect">${allOpts}</select></div>
+      <button class="btn btn-outline" onclick="viewAttendance()">View</button>
+      <div id="attendance-view"></div></div>`;
+
+    area.innerHTML = html;
+
+    document.getElementById('signin-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const msg = document.getElementById('signin-msg');
+      try {
+        const r = await HvZ.post('/api/admin/meetings/signin', Object.fromEntries(fd));
+        msg.innerHTML = `<p style="color:var(--color-success);">Signed in ${HvZ.escapeHtml(r.player.fname)} (Waiver: ${r.waiverStatus})</p>`;
+        e.target.querySelector('[name=playerID]').value = '';
+      } catch (err) { msg.innerHTML = `<p style="color:var(--color-accent);">${err.error || 'Error'}</p>`; }
+    });
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      await HvZ.post('/api/admin/meetings/create', Object.fromEntries(fd));
+      alert('Meeting created!'); location.reload();
+    });
+
+    document.getElementById('resolve-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const r = await HvZ.post('/api/admin/meetings/resolve', Object.fromEntries(fd));
+      alert(`Meeting resolved! ${r.attendeeCount} attendees processed.`); location.reload();
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+
+async function viewAttendance() {
+  const id = document.getElementById('viewSelect').value;
+  const el = document.getElementById('attendance-view');
+  const data = await HvZ.get(`/api/admin/meetings/${id}/stats`);
+  let html = `<p style="margin-top:1rem;"><strong>Total: ${data.total}</strong> (H:${data.counts.human} Z:${data.counts.zombie} M:${data.counts.moderator} O:${data.counts.other})</p>`;
+  html += '<ul>' + data.players.map(p => `<li>${HvZ.escapeHtml(p.fname || '')} ${HvZ.escapeHtml(p.lname || '')} (${p.uname}) - State: ${p.startState}</li>`).join('') + '</ul>';
+  el.innerHTML = html;
+}
+</script>
+</body>
+</html>

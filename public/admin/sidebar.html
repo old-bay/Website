@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Edit Sidebar</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Edit Sidebar / Slides</h1></div></section>
+<main id="main-content">
+  <div class="container">
+    <div class="card"><h2>Update Slide Headings</h2>
+      <form onsubmit="return sub(event,'/api/admin/sidebar/headings',['mainHeading','firstSlides','secondSlides','thirdSlides'])">
+        <div class="form-group"><label>Main Heading</label><input class="form-control" name="mainHeading"></div>
+        <div class="form-group"><label>First Slides Heading</label><input class="form-control" name="firstSlides"></div>
+        <div class="form-group"><label>Second Slides Heading</label><input class="form-control" name="secondSlides"></div>
+        <div class="form-group"><label>Third Slides Heading (enter IGNORE to clear)</label><input class="form-control" name="thirdSlides"></div>
+        <button type="submit" class="btn btn-primary">Update Headings</button>
+      </form></div>
+    <div class="card"><h2>Update Slides</h2>
+      <form onsubmit="return sub(event,'/api/admin/sidebar/slides',['slot','slideKey','customUrl','startSlide'])">
+        <div class="form-group"><label>Slot</label>
+          <select class="form-control" name="slot"><option value="first">First (Monday)</option><option value="second">Second (Thursday)</option><option value="third">Third (Points)</option></select></div>
+        <div class="form-group"><label>Preset</label>
+          <select class="form-control" name="slideKey"><option value="">Custom URL</option><option value="hvz101">HvZ 101</option><option value="hvz102">HvZ 102</option><option value="hvz202">HvZ 202</option><option value="underConstruction">Under Construction</option><option value="endOfSemester">End of Semester</option><option value="fiveNight">Five Night</option></select></div>
+        <div class="form-group"><label>Custom URL (if not using preset)</label><input class="form-control" name="customUrl"></div>
+        <div class="form-group"><label>Starting Slide #</label><input class="form-control" name="startSlide"></div>
+        <button type="submit" class="btn btn-primary">Set Slides</button>
+      </form></div>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>async function sub(e,url,fields){e.preventDefault();const fd=new FormData(e.target);const b={};fields.forEach(f=>b[f]=fd.get(f));await HvZ.post(url,b);alert('Updated!');return false;}</script>
+</body>
+</html>

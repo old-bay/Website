@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - FAQs</title>
+  <meta name="description" content="Frequently asked questions about UMBC Humans vs. Zombies.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Frequently Asked Questions</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area" id="faq-area">
+      <div class="card"><p class="text-muted">Loading FAQs...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('faq-area');
+  try {
+    const faqs = await HvZ.get('/api/faq');
+    if (faqs.length === 0) { area.innerHTML = '<div class="card"><p>No FAQs available.</p></div>'; return; }
+    let html = '';
+    faqs.forEach((faq, i) => {
+      html += `
+        <div class="card faq-item">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-${i}">
+            <span>${HvZ.escapeHtml(faq.title)}</span>
+            <svg class="faq-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer" id="faq-${i}">${faq.answer}</div>
+        </div>`;
+    });
+    area.innerHTML = html;
+    // Re-init accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const answer = document.getElementById(this.getAttribute('aria-controls'));
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.faq-question').forEach(other => {
+          if (other !== btn) { other.setAttribute('aria-expanded', 'false'); document.getElementById(other.getAttribute('aria-controls')).classList.remove('open'); }
+        });
+        this.setAttribute('aria-expanded', String(!expanded));
+        answer.classList.toggle('open', !expanded);
+      });
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Error loading FAQs.</p></div>'; }
+});
+</script>
+</body>
+</html>

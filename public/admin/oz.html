@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - OZ Selection</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>OZ Selection</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const data = await HvZ.get('/api/admin/oz');
+    if (!data.players.length) { area.innerHTML = '<div class="card"><p>No players opted in or no active game.</p></div>'; return; }
+    let html = '<div class="card"><h2>OZ Pool</h2><p>Un-selection of an OZ can only happen manually in the database.</p>';
+    html += '<div class="table-wrapper"><table class="table"><thead><tr><th>Name</th><th>State</th><th>OZ Paragraph</th><th>H/Z/M Starts</th><th>Times OZ</th>';
+    if (data.authLevel >= 2) html += '<th>Action</th>';
+    html += '</tr></thead><tbody>';
+    for (const p of data.players) {
+      const isOZ = p.state === 2;
+      html += `<tr${isOZ ? ' style="background:var(--color-primary-dark);"' : ''}>
+        <td>${HvZ.escapeHtml(p.fname)} ${HvZ.escapeHtml(p.lname)}${p.timesAsOZ > 0 ? ' <s>(prev OZ)</s>' : ''}</td>
+        <td>${p.state}</td><td>${HvZ.escapeHtml(p.ozParagraph || '')}</td>
+        <td>${p.humanStartsTotal}/${p.zombieStartsTotal}/${p.gamesModdedTotal}</td>
+        <td>${p.timesAsOZ}</td>`;
+      if (data.authLevel >= 2) html += `<td>${!isOZ ? `<button class="btn btn-outline" onclick="makeOZ('${p.UID}')">Make OZ</button>` : 'Already OZ'}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+    area.innerHTML = html;
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+
+async function makeOZ(uid) {
+  if (!confirm('Make this player an OZ?')) return;
+  await HvZ.post('/api/admin/oz/select', { uid });
+  alert('Player marked as OZ.'); location.reload();
+}
+</script>
+</body>
+</html>

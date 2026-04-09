@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Achievements</title>
+  <meta name="description" content="UMBC HvZ achievement database.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Achievement Database</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <div class="card" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-filter active" data-filter="all">All</button>
+        <button class="btn btn-outline btn-filter" data-filter="e">Basic</button>
+        <button class="btn btn-outline btn-filter" data-filter="m">Recruit</button>
+        <button class="btn btn-outline btn-filter" data-filter="h">Veteran</button>
+        <button class="btn btn-outline btn-filter" data-filter="l">Legendary</button>
+      </div>
+      <div id="achievements-area"><p class="text-muted" style="padding:1rem;">Loading achievements...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('achievements-area');
+  try {
+    const data = await HvZ.get('/api/achievements');
+    // Group by class
+    const groups = {};
+    for (const a of data.achievements) {
+      if (!groups[a.classCode]) groups[a.classCode] = { name: a.className, items: [] };
+      groups[a.classCode].items.push(a);
+    }
+
+    let html = '';
+    for (const [code, group] of Object.entries(groups)) {
+      html += `<div class="achievement-tier" data-tier="${code}"><h2>${HvZ.escapeHtml(group.name)}</h2>
+        <div class="table-wrapper"><table class="table"><thead><tr><th>Icon</th><th>Name</th><th>Alignment</th><th>Description</th></tr></thead><tbody>`;
+      for (const a of group.items) {
+        html += `<tr><td><img src="/images/achievements/${a.image || 'comingSoon.png'}" alt="" width="50" height="50" style="border-radius:4px;"></td>
+          <td>${HvZ.escapeHtml(a.name)}</td><td>${HvZ.escapeHtml(a.alignment)}</td><td>${HvZ.escapeHtml(a.description)}</td></tr>`;
+      }
+      html += '</tbody></table></div></div>';
+    }
+
+    // Retired
+    if (data.retired.length > 0) {
+      html += '<div class="achievement-tier" data-tier="r"><h2>Retired</h2><div class="table-wrapper"><table class="table"><thead><tr><th>Icon</th><th>Name</th><th>Alignment</th><th>Description</th></tr></thead><tbody>';
+      for (const a of data.retired) {
+        html += `<tr><td><img src="/images/achievements/${a.image || 'comingSoon.png'}" alt="" width="50" height="50" style="border-radius:4px;"></td>
+          <td>${HvZ.escapeHtml(a.name)}</td><td>${HvZ.escapeHtml(a.alignment)}</td><td>${HvZ.escapeHtml(a.description)}</td></tr>`;
+      }
+      html += '</tbody></table></div></div>';
+    }
+
+    area.innerHTML = html;
+
+    // Filter buttons
+    document.querySelectorAll('.btn-filter').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const filter = this.dataset.filter;
+        document.querySelectorAll('.btn-filter').forEach(b => { b.classList.remove('active', 'btn-primary'); b.classList.add('btn-outline'); });
+        this.classList.add('active', 'btn-primary'); this.classList.remove('btn-outline');
+        document.querySelectorAll('.achievement-tier').forEach(t => {
+          t.style.display = (filter === 'all' || t.dataset.tier === filter) ? '' : 'none';
+        });
+      });
+    });
+  } catch (e) { area.innerHTML = '<p>Error loading achievements.</p>'; }
+});
+</script>
+</body>
+</html>

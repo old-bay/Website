@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Points Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Points Management</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const data = await HvZ.get('/api/admin/points');
+    if (data.error) { area.innerHTML = `<div class="card"><p>${data.error}</p></div>`; return; }
+
+    let html = `<div class="card"><h2>Score</h2><p>Humans: <strong>${data.humanPoints}</strong> | Zombies: <strong>${data.zombiePoints}</strong></p></div>`;
+
+    if (data.authLevel >= 2) {
+      html += `<div class="card"><h2>Award Points</h2>
+        <form id="pts-form">
+          <div class="form-group" style="max-height:300px;overflow-y:auto;">`;
+      for (const p of data.players) {
+        html += `<label style="display:block;margin:0.25rem 0;"><input type="checkbox" name="playerIDs" value="${p.playerID}"> ${HvZ.escapeHtml(p.fname)} ${HvZ.escapeHtml(p.lname)} (${p.points} pts)</label>`;
+      }
+      html += `</div>
+          <div class="form-group"><label>Points</label><input class="form-control" type="number" name="points" required></div>
+          <div class="form-group"><label>Reason</label><input class="form-control" type="text" name="reason" required></div>
+          <button type="submit" class="btn btn-primary">Award</button>
+        </form></div>`;
+    }
+
+    html += '<div class="card"><h2>Points Log</h2><div style="max-height:300px;overflow-y:auto;"><table class="table"><thead><tr><th>Player</th><th>Points</th><th>Reason</th></tr></thead><tbody>';
+    for (const l of data.log) {
+      html += `<tr><td>${HvZ.escapeHtml(l.fname || '')} ${HvZ.escapeHtml(l.lname || '')}</td><td>${l.pointsGiven}</td><td>${HvZ.escapeHtml(l.reason || '')}</td></tr>`;
+    }
+    html += '</tbody></table></div></div>';
+
+    area.innerHTML = html;
+
+    const form = document.getElementById('pts-form');
+    if (form) form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const ids = fd.getAll('playerIDs');
+      if (!ids.length) { alert('Select at least one player'); return; }
+      await HvZ.post('/api/admin/points', { playerIDs: ids, points: fd.get('points'), reason: fd.get('reason') });
+      alert('Points awarded!'); location.reload();
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Create Blog Post</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Create Blog Post</h1></div></section>
+<main id="main-content">
+  <div class="container">
+    <div class="card">
+      <form id="blog-form">
+        <div class="form-group"><label for="title">Title</label><input class="form-control" type="text" id="title" name="title" required></div>
+        <div class="form-group"><label for="content">Content (HTML supported)</label><textarea class="form-control" id="content" name="content" rows="10" required></textarea></div>
+        <button type="submit" class="btn btn-primary">Publish Post</button>
+      </form>
+    </div>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.getElementById('blog-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await HvZ.post('/api/admin/blog', { title: document.getElementById('title').value, content: document.getElementById('content').value });
+  alert('Post published!'); window.location.href = '/news';
+});
+</script>
+</body>
+</html>

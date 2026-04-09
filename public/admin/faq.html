@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - FAQ Editor</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>FAQ Editor</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const faqs = await HvZ.get('/api/admin/faq');
+    let html = `<div class="card"><h2>Add FAQ</h2>
+      <form id="add-form">
+        <div class="form-group"><label>Order #</label><input class="form-control" type="number" name="number" required></div>
+        <div class="form-group"><label>Title</label><input class="form-control" name="title" required></div>
+        <div class="form-group"><label>Answer (HTML)</label><textarea class="form-control" name="answer" rows="4" required></textarea></div>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form></div>`;
+    html += '<div class="card"><h2>Existing FAQs</h2>';
+    if (faqs.length === 0) html += '<p>None yet.</p>';
+    else {
+      html += '<table class="table"><thead><tr><th>#</th><th>Title</th><th>Actions</th></tr></thead><tbody>';
+      for (const f of faqs) {
+        html += `<tr><td>${f.number}</td><td>${HvZ.escapeHtml(f.title)}</td>
+          <td><button class="btn btn-outline" onclick="deleteFaq(${f.faqID})">Delete</button></td></tr>`;
+      }
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+    area.innerHTML = html;
+
+    document.getElementById('add-form').addEventListener('submit', async (e) => {
+      e.preventDefault(); const fd = new FormData(e.target);
+      await HvZ.post('/api/admin/faq', Object.fromEntries(fd));
+      alert('Added!'); location.reload();
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+async function deleteFaq(id) { if (!confirm('Delete?')) return; await HvZ.del('/api/admin/faq/' + id); location.reload(); }
+</script>
+</body>
+</html>

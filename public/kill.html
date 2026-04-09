@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Log a Kill</title>
+  <meta name="description" content="Log a zombie kill using a kill code.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Log a Kill</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area">
+      <div class="card">
+        <p>Enter the kill code from the player you tagged. Your kill will be recorded and their status will update.</p>
+        <div id="kill-message" style="display:none;margin-bottom:1rem;padding:0.75rem;border-radius:var(--radius);"></div>
+        <form id="kill-form">
+          <div class="form-group">
+            <label for="killCode">Kill Code</label>
+            <input class="form-control" type="text" id="killCode" name="killCode" required placeholder="e.g. MK3Q9WR">
+          </div>
+          <div class="form-group">
+            <label for="location">Location (optional)</label>
+            <input class="form-control" type="text" id="location" name="location" placeholder="Where did the kill happen?">
+          </div>
+          <button type="submit" class="btn btn-primary">Log Kill</button>
+        </form>
+      </div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.getElementById('kill-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('kill-message');
+  try {
+    const result = await HvZ.post('/api/kill', {
+      killCode: document.getElementById('killCode').value,
+      location: document.getElementById('location').value
+    });
+    msg.style.display = 'block';
+    msg.style.background = 'var(--color-success)';
+    msg.style.color = '#fff';
+    msg.textContent = result.message;
+    e.target.reset();
+  } catch (err) {
+    msg.style.display = 'block';
+    msg.style.background = 'var(--color-accent)';
+    msg.style.color = '#fff';
+    msg.textContent = err.error || 'Error logging kill.';
+  }
+});
+</script>
+</body>
+</html>

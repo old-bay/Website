@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Game Summaries</title>
+  <meta name="description" content="Long game logs and summaries.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Long Game Logs</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area" id="games-area">
+      <div class="card"><p class="text-muted">Loading...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('games-area');
+  try {
+    const games = await HvZ.get('/api/games');
+    let html = `<div class="card">
+      <p>Select a long game below to view its log. Data on kill times from 2016&ndash;2021 may be inaccurate.</p>
+      <div class="form-group"><label for="gameSelect">Select game</label>
+        <select class="form-control" id="gameSelect">
+          ${games.map(g => `<option value="${g.gameID}">${HvZ.escapeHtml(g.title)}</option>`).join('')}
+        </select></div>
+      <button class="btn btn-primary" onclick="loadLog()">View Log</button></div>
+      <div id="game-log"></div>`;
+    area.innerHTML = html;
+  } catch (err) {
+    area.innerHTML = '<div class="card"><p>You do not have permission to view this page. Sign in as an admin or beta tester.</p></div>';
+  }
+});
+
+async function loadLog() {
+  const gameID = document.getElementById('gameSelect').value;
+  const logEl = document.getElementById('game-log');
+  logEl.innerHTML = '<p class="text-muted">Loading...</p>';
+  try {
+    const players = await HvZ.get(`/api/games/${gameID}/log`);
+    if (players.length === 0) { logEl.innerHTML = '<p>No data for this game.</p>'; return; }
+    let html = '<div class="table-wrapper"><table class="table"><thead><tr><th>Name</th><th>Username</th><th>State</th><th>Kills</th><th>Death Time</th></tr></thead><tbody>';
+    for (const p of players) {
+      html += `<tr><td>${HvZ.escapeHtml(p.fname || '')} ${HvZ.escapeHtml(p.lname || '')}</td>
+        <td>${HvZ.escapeHtml(p.uname || p.playerID)}</td>
+        <td>${p.state}</td><td>${p.kills || 0}</td>
+        <td>${p.deathTime || ''}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    logEl.innerHTML = html;
+  } catch (e) { logEl.innerHTML = '<p>Error loading log.</p>'; }
+}
+</script>
+</body>
+</html>

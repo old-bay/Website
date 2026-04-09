@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Long Game Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Long Game Registration</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const data = await HvZ.get('/api/admin/long-game');
+    const gameOpts = data.games.map(g => `<option value="${g.gameID}">${HvZ.escapeHtml(g.title)}</option>`).join('');
+
+    let html = `<div class="card"><h2>Register Player</h2>
+      <form id="reg-form">
+        <div class="form-group"><label>Game</label><select class="form-control" name="longGameSelect">${gameOpts}</select></div>
+        <div class="form-group"><label>Player ID (username/email)</label><input class="form-control" type="text" name="playerID" required></div>
+        <div class="form-group"><label>Waiver Status</label>
+          <select class="form-control" name="waiverStatus"><option value="newOne">New</option><option value="turnedIn">Turned In</option><option value="waiverOnly">Waiver Only</option></select></div>
+        <div id="reg-msg"></div>
+        <button type="submit" class="btn btn-primary">Register</button>
+      </form></div>`;
+
+    if (data.authLevel >= 2) {
+      html += `<div class="card"><h2>Create Long Game</h2>
+        <form id="create-form">
+          <div class="form-group"><label>Title</label><input class="form-control" type="text" name="title" required></div>
+          <div class="form-group"><label>Start Date</label><input class="form-control" type="datetime-local" name="startDate" required></div>
+          <div class="form-group"><label>End Date</label><input class="form-control" type="datetime-local" name="endDate" required></div>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </form></div>`;
+      html += `<div class="card"><h2>Close Long Game</h2>
+        <form id="close-form">
+          <div class="form-group"><label>Game</label><select class="form-control" name="longGameSelect">${gameOpts}</select></div>
+          <button type="submit" class="btn btn-outline">Close Game</button>
+        </form></div>`;
+    }
+
+    // Mailing list
+    if (data.current) {
+      html += `<div class="card"><h2>Mailing List</h2>
+        <button class="btn btn-outline" onclick="loadMailing('all')">All Players</button>
+        <button class="btn btn-outline" onclick="loadMailing('human')">Humans Only</button>
+        <button class="btn btn-outline" onclick="loadMailing('zombie')">Zombies Only</button>
+        <div id="mailing-list"></div></div>`;
+    }
+
+    area.innerHTML = html;
+
+    document.getElementById('reg-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        const r = await HvZ.post('/api/admin/long-game/register', Object.fromEntries(fd));
+        document.getElementById('reg-msg').innerHTML = `<p style="color:var(--color-success);">Registered ${HvZ.escapeHtml(r.player.fname)}</p>`;
+      } catch (err) { document.getElementById('reg-msg').innerHTML = `<p style="color:var(--color-accent);">${err.error}</p>`; }
+    });
+
+    const createForm = document.getElementById('create-form');
+    if (createForm) createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      await HvZ.post('/api/admin/long-game/create', Object.fromEntries(fd));
+      alert('Game created!'); location.reload();
+    });
+
+    const closeForm = document.getElementById('close-form');
+    if (closeForm) closeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm('Close this game?')) return;
+      const fd = new FormData(e.target);
+      await HvZ.post('/api/admin/long-game/close', Object.fromEntries(fd));
+      alert('Game closed.'); location.reload();
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+
+async function loadMailing(filter) {
+  const me = await HvZ.getMe();
+  const data = await HvZ.get('/api/admin/long-game');
+  if (!data.current) return;
+  const players = await HvZ.get(`/api/admin/long-game/mailing/${data.current.gameID}/${filter}`);
+  const el = document.getElementById('mailing-list');
+  let html = '<table class="table" style="margin-top:1rem;"><thead><tr><th>Name</th><th>Email</th><th>Username</th><th>Kill Code</th></tr></thead><tbody>';
+  for (const p of players) {
+    html += `<tr><td>${HvZ.escapeHtml(p.fname)} ${HvZ.escapeHtml(p.lname)}</td><td>${HvZ.escapeHtml(p.email)}</td><td>${HvZ.escapeHtml(p.uname)}</td><td>${p.mainKill || ''}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+</script>
+</body>
+</html>

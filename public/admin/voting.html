@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Election Management</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Election Management</h1></div></section>
+<main id="main-content">
+  <div class="container">
+    <div class="card"><h2>Insert Bio</h2>
+      <form onsubmit="return submitForm(event, '/api/admin/voting/insert-bio', ['position','name','bio'])">
+        <div class="form-group"><label>Position</label>
+          <select class="form-control" name="position">
+            <option>President</option><option>Vice President</option><option>Secretary</option><option>Treasurer</option><option>Recruitment &amp; PR</option><option>Web Committee</option>
+          </select></div>
+        <div class="form-group"><label>Name</label><input class="form-control" name="name" required></div>
+        <div class="form-group"><label>Bio</label><textarea class="form-control" name="bio" rows="4" required></textarea></div>
+        <button type="submit" class="btn btn-primary">Insert Bio</button>
+      </form></div>
+
+    <div class="card"><h2>Insert Voting Option</h2>
+      <form onsubmit="return submitForm(event, '/api/admin/voting/insert-option', ['position','candidate'])">
+        <div class="form-group"><label>Position</label><input class="form-control" name="position" required></div>
+        <div class="form-group"><label>Candidate</label><input class="form-control" name="candidate" required></div>
+        <button type="submit" class="btn btn-primary">Insert Option</button>
+      </form></div>
+
+    <div class="card"><h2>Voting Settings</h2>
+      <form onsubmit="return submitForm(event, '/api/admin/voting/settings', ['writeInThreshold','showVotingLink','lockVoting'])">
+        <div class="form-group"><label>Write-In Threshold</label><input class="form-control" name="writeInThreshold" type="number" value="0"></div>
+        <div class="form-group"><label>Voting Link Status</label>
+          <select class="form-control" name="showVotingLink"><option value="closed">Closed</option><option value="soonClosed">Soon (Closed)</option><option value="soonOpen">Soon (Open)</option><option value="open">Open</option></select></div>
+        <div class="form-group"><label>Vote Locking</label>
+          <select class="form-control" name="lockVoting"><option value="unlock">Unlocked</option><option value="lock">Locked</option></select></div>
+        <button type="submit" class="btn btn-primary">Update Settings</button>
+      </form></div>
+
+    <div class="card"><h2>Danger Zone</h2>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="if(confirm('Clear all bios?'))HvZ.post('/api/admin/voting/clear-bios').then(()=>alert('Done'))">Clear Bios</button>
+        <button class="btn btn-outline" onclick="if(confirm('Clear all votes?'))HvZ.post('/api/admin/voting/clear-votes').then(()=>alert('Done'))">Clear Votes</button>
+        <button class="btn btn-outline" onclick="if(confirm('Clear entire election?'))HvZ.post('/api/admin/voting/clear-election').then(()=>alert('Done'))">Clear Election</button>
+        <button class="btn btn-primary" onclick="HvZ.post('/api/admin/voting/send-results').then(()=>alert('Results emailed'))">Send Results</button>
+      </div></div>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+async function submitForm(e, url, fields) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {};
+  fields.forEach(f => body[f] = fd.get(f));
+  await HvZ.post(url, body);
+  alert('Done!');
+  return false;
+}
+</script>
+</body>
+</html>

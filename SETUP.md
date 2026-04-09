@@ -1,6 +1,6 @@
 # UMBC HvZ Website — Bare-Metal Setup Guide
 
-Step-by-step instructions for deploying this site on a fresh Linux server.
+Step-by-step instructions for deploying this Node.js site on a fresh Linux server.
 
 ---
 
@@ -9,14 +9,9 @@ Step-by-step instructions for deploying this site on a fresh Linux server.
 | Component       | Minimum            | Recommended            |
 |-----------------|--------------------|------------------------|
 | OS              | Ubuntu 20.04 / Debian 11 / CentOS 8 | Ubuntu 22.04 LTS |
-| Web Server      | Apache 2.4         | Apache 2.4             |
-| PHP             | 7.4                | 8.1                    |
+| Runtime         | Node.js 18         | Node.js 20 LTS        |
 | Database        | MySQL 5.7 / MariaDB 10.3 | MySQL 8.0 / MariaDB 10.6 |
 | RAM             | 512 MB             | 1 GB+                  |
-
-> **Note:** The codebase uses legacy `mysql_*` function names, but `includes/util.php`
-> contains a compatibility shim (lines 764–818) that maps them to `mysqli` internally.
-> The code runs on PHP 7+ and 8.x without modification.
 
 ---
 
@@ -27,11 +22,9 @@ Step-by-step instructions for deploying this site on a fresh Linux server.
 ```bash
 sudo apt update && sudo apt upgrade -y
 
-# Apache
-sudo apt install -y apache2
-
-# PHP and required extensions
-sudo apt install -y php php-mysql php-gd php-xml php-mbstring php-curl php-zip libapache2-mod-php
+# Node.js (via NodeSource)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
 
 # MySQL (or MariaDB — pick one)
 sudo apt install -y mysql-server
@@ -41,82 +34,27 @@ sudo apt install -y mysql-server
 sudo apt install -y msmtp msmtp-mta
 
 # Utilities
-sudo apt install -y git unzip
+sudo apt install -y git
 ```
 
-### CentOS / RHEL
-
-```bash
-sudo dnf install -y httpd php php-mysqlnd php-gd php-xml php-mbstring php-curl php-zip
-sudo dnf install -y mysql-server   # or mariadb-server
-sudo systemctl enable --now httpd mysqld
-```
+Verify Node.js: `node --version` (should be 18+).
 
 ---
 
-## 3. Enable Required Apache Modules
+## 3. Deploy the Code
 
 ```bash
-sudo a2enmod rewrite
-sudo a2enmod headers
-sudo systemctl restart apache2
-```
-
-The site relies on `.htaccess` files, so `mod_rewrite` and `AllowOverride All` are
-mandatory.
-
----
-
-## 4. Deploy the Code
-
-```bash
-# Clone the repository
 cd /var/www
-sudo git clone https://github.com/old-bay/Website.git html
-# Or if deploying to a subdirectory:
-# sudo git clone https://github.com/old-bay/Website.git /var/www/html/hvz
+sudo git clone https://github.com/old-bay/Website.git hvz
+cd hvz
 
-sudo chown -R www-data:www-data /var/www/html
+# Install Node.js dependencies
+npm install
 ```
 
 ---
 
-## 5. Apache Virtual Host Configuration
-
-Create `/etc/apache2/sites-available/hvz.conf`:
-
-```apache
-<VirtualHost *:80>
-    ServerName yourdomain.com
-    DocumentRoot /var/www/html
-
-    <Directory /var/www/html>
-        Options -Indexes +FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    # PHP settings
-    <FilesMatch \.php$>
-        SetHandler application/x-httpd-php
-    </FilesMatch>
-
-    ErrorLog ${APACHE_LOG_DIR}/hvz-error.log
-    CustomLog ${APACHE_LOG_DIR}/hvz-access.log combined
-</VirtualHost>
-```
-
-Enable it:
-
-```bash
-sudo a2ensite hvz.conf
-sudo a2dissite 000-default.conf   # disable default if desired
-sudo systemctl reload apache2
-```
-
----
-
-## 6. Set Up MySQL Database and User
+## 4. Set Up MySQL Database and User
 
 ```bash
 sudo mysql
@@ -136,7 +74,7 @@ FLUSH PRIVILEGES;
 
 ---
 
-## 7. Create Database Tables
+## 5. Create Database Tables
 
 The repository does not include a SQL dump. Run the following schema, which is
 reconstructed from every MySQL query in the codebase.
@@ -177,18 +115,19 @@ CREATE TABLE semesters (
 
 -- Player accounts
 CREATE TABLE users (
-    UID                     VARCHAR(7) PRIMARY KEY,     -- e.g. US0000-
+    UID                     VARCHAR(7) PRIMARY KEY,
     fname                   VARCHAR(100) NOT NULL,
     lname                   VARCHAR(100) NOT NULL,
     uname                   VARCHAR(100) NOT NULL UNIQUE,
     email                   VARCHAR(200) NOT NULL UNIQUE,
-    passwd                  VARCHAR(128) NOT NULL,       -- SHA256 hash
-    isAdmin                 INT DEFAULT 0,               -- 0=none, 1=subofficer, 2=officer, 3=webcom
+    passwd                  VARCHAR(128) NOT NULL,
+    isAdmin                 INT DEFAULT 0,
     isLongGameAuthed        INT DEFAULT 0,
     isBetaTester            INT DEFAULT 0,
     canChangeName           INT DEFAULT 1,
     ozOptIn                 INT DEFAULT 0,
     ozParagraph             TEXT,
+    timesAsOZ               INT DEFAULT 0,
     hasTurnedInWaiver       INT DEFAULT 0,
     vaccineStatus           INT DEFAULT 0,
     profilePicture          VARCHAR(255) DEFAULT 'anon.jpg',
@@ -207,22 +146,25 @@ CREATE TABLE users (
     gamesModdedThisTerm     INT DEFAULT 0,
     adminMeetingsTotal      INT DEFAULT 0,
     adminMeetingsThisTerm   INT DEFAULT 0,
+    attendedPregame         INT DEFAULT 0,
+    pwResetCode             VARCHAR(20),
+    pwResetTime             DATETIME,
     creationDate            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Profile pictures (separate table for upload tracking)
+-- Profile pictures
 CREATE TABLE profilePictures (
     UID     VARCHAR(7) PRIMARY KEY,
     picture VARCHAR(255),
     FOREIGN KEY (UID) REFERENCES users(UID)
 );
 
--- Meeting/event definitions
+-- Meeting definitions
 CREATE TABLE meeting_list (
-    meetingID       VARCHAR(7) PRIMARY KEY,   -- e.g. ME0000-
+    meetingID       VARCHAR(7) PRIMARY KEY,
     meetingName     VARCHAR(200),
-    meetingType     INT DEFAULT 0,             -- 0=mission, 1=admin/community, 2=other, 3=nominal
-    meetingWinner   INT DEFAULT 0,             -- 0=other, 1=human, 2=zombie
+    meetingType     INT DEFAULT 0,
+    winner          INT DEFAULT 0,
     isResolved      INT DEFAULT 0,
     isPreGame       INT DEFAULT 0,
     creationDate    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -232,18 +174,10 @@ CREATE TABLE meeting_list (
 CREATE TABLE meeting_log (
     UID             VARCHAR(7),
     meetingID       VARCHAR(7),
-    startState      INT DEFAULT 0,   -- 1=human, -1/-2=zombie/OZ, 4=moderator
+    startState      INT DEFAULT 0,
     creationDate    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (UID, meetingID),
     FOREIGN KEY (UID) REFERENCES users(UID),
-    FOREIGN KEY (meetingID) REFERENCES meeting_list(meetingID)
-);
-
--- Unregistered player attendance
-CREATE TABLE meeting_unregistered_log (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    meetingID   VARCHAR(7),
-    playerName  VARCHAR(200),
     FOREIGN KEY (meetingID) REFERENCES meeting_list(meetingID)
 );
 
@@ -255,15 +189,24 @@ CREATE TABLE long_games (
     endDate     DATETIME
 );
 
+-- Long game meetings
+CREATE TABLE long_meetings (
+    gameID      VARCHAR(7),
+    meetingID   VARCHAR(7),
+    PRIMARY KEY (gameID, meetingID)
+);
+
 -- Long game player state
 CREATE TABLE long_players (
     playerID            VARCHAR(7),
     gameID              VARCHAR(7),
-    state               INT DEFAULT 1,   -- see denumerate('gameState') in util.php
+    state               INT DEFAULT 1,
     kills               INT DEFAULT 0,
-    daysSurvived        INT DEFAULT 0,
-    deathTime           DATETIME DEFAULT '0000-00-00 00:00:00',
-    mainKill            VARCHAR(7),      -- e.g. MK3Q9WE
+    missionsPlayed      INT DEFAULT 0,
+    deathTime           DATETIME DEFAULT NULL,
+    killLocation        VARCHAR(200),
+    cachedDeathTime     DATETIME DEFAULT NULL,
+    mainKill            VARCHAR(7),
     feedKill1           VARCHAR(7),
     feedKill2           VARCHAR(7),
     longestDaySurvived  INT DEFAULT 0,
@@ -273,17 +216,9 @@ CREATE TABLE long_players (
     FOREIGN KEY (gameID) REFERENCES long_games(gameID)
 );
 
--- Long game pre-registration
-CREATE TABLE long_preregister (
-    UID     VARCHAR(7),
-    gameID  VARCHAR(7),
-    mainKill VARCHAR(7),
-    PRIMARY KEY (UID, gameID)
-);
-
 -- Long game point tracking
 CREATE TABLE long_points (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
+    pointID     INT AUTO_INCREMENT PRIMARY KEY,
     gameID      VARCHAR(7),
     playerID    VARCHAR(7),
     pointsGiven INT DEFAULT 0,
@@ -297,30 +232,31 @@ CREATE TABLE blog_posts (
     title       VARCHAR(300),
     content     TEXT,
     author      VARCHAR(100),
-    postDate    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    posted      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- FAQ entries (loaded on about.php)
+-- FAQ entries
 CREATE TABLE faq (
-    number  INT PRIMARY KEY,
+    faqID   INT AUTO_INCREMENT PRIMARY KEY,
+    number  INT,
     title   VARCHAR(300),
     answer  TEXT
 );
 
--- Achievement FAQ (loaded on achievementsFaq.php)
+-- Achievement FAQ
 CREATE TABLE achievementFaq (
     number  INT PRIMARY KEY,
     title   VARCHAR(300),
     answer  TEXT
 );
 
--- Achievement definitions (current system)
+-- Achievement definitions
 CREATE TABLE achievements_new (
     AID         INT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(200),
     description TEXT,
-    class       CHAR(1),        -- e=basic, m=recruit, h=veteran, l=legendary, r=retired
-    alignment   CHAR(1),        -- h=human, z=zombie, n=neutral, m=moderator
+    class       CHAR(1),
+    alignment   CHAR(1),
     image       VARCHAR(255),
     isHidden    INT DEFAULT 0,
     `key`       VARCHAR(100),
@@ -328,7 +264,7 @@ CREATE TABLE achievements_new (
     updateFunction VARCHAR(200)
 );
 
--- Player <-> achievement links (current system)
+-- Player <-> achievement links
 CREATE TABLE userAchieveLink_new (
     AID         INT,
     UID         VARCHAR(7),
@@ -337,12 +273,6 @@ CREATE TABLE userAchieveLink_new (
     PRIMARY KEY (AID, UID),
     FOREIGN KEY (AID) REFERENCES achievements_new(AID),
     FOREIGN KEY (UID) REFERENCES users(UID)
-);
-
--- Election: positions to vote on
-CREATE TABLE officer_positions (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    position    VARCHAR(100) NOT NULL
 );
 
 -- Election: candidates
@@ -381,40 +311,41 @@ INSERT INTO mission_slide_headings (headingTitle, headingName) VALUES
     ('secondSlides', 'Thursday Mission'),
     ('thirdSlides', NULL);
 
--- Seed default slide entries
 INSERT INTO mission_slides (name, url) VALUES
     ('mondayMission', 'https://docs.google.com/presentation/d/PLACEHOLDER/'),
     ('thursdayMission', 'https://docs.google.com/presentation/d/PLACEHOLDER/'),
     ('pointSlide', 'https://docs.google.com/presentation/d/PLACEHOLDER/');
 
--- Equipment tracking (disabled in admin panel but table exists)
+-- Equipment tracking
 CREATE TABLE equipment (
     EID         INT AUTO_INCREMENT PRIMARY KEY,
     description VARCHAR(200),
     loanedTo    VARCHAR(7)
 );
 
--- Polls (disabled but referenced)
+-- Polls
 CREATE TABLE poll_questions (
     QID         INT AUTO_INCREMENT PRIMARY KEY,
-    question    TEXT
+    question    TEXT,
+    isOpen      INT DEFAULT 1,
+    isActive    INT DEFAULT 0
 );
 
 CREATE TABLE poll_options (
-    id      INT AUTO_INCREMENT PRIMARY KEY,
-    QID     INT,
-    label   VARCHAR(200),
+    optionID    INT AUTO_INCREMENT PRIMARY KEY,
+    QID         INT,
+    `option`    VARCHAR(200),
     FOREIGN KEY (QID) REFERENCES poll_questions(QID)
 );
 
 CREATE TABLE poll_votes (
-    id      INT AUTO_INCREMENT PRIMARY KEY,
-    QID     INT,
-    uid     VARCHAR(7),
-    choice  INT
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    QID         INT,
+    UID         VARCHAR(7),
+    optionID    INT
 );
 
--- Custom MySQL function used by playerList queries
+-- Custom MySQL function used by some queries
 DELIMITER //
 CREATE FUNCTION PlayerState(n INT)
     RETURNS VARCHAR(20)
@@ -432,13 +363,12 @@ DELIMITER ;
 
 ---
 
-## 8. Create the Configuration File
+## 6. Create the Configuration File
 
-The site reads `/var/www/html/config.txt` at runtime. This file is gitignored
-and blocked by `.htaccess`.
+The app reads `config.txt` in the project root. This file is gitignored.
 
 ```bash
-sudo nano /var/www/html/config.txt
+nano /var/www/hvz/config.txt
 ```
 
 Contents:
@@ -446,83 +376,45 @@ Contents:
 ```
 # UMBC HvZ site configuration
 debug=0
-folder=/
 mysql_user=hvzUser
 mysql_pass=CHANGE_ME_STRONG_PASSWORD
 mysql_db=hvz
+session_secret=CHANGE_ME_RANDOM_SECRET_STRING
 ```
 
-| Key          | Description                                                          |
-|--------------|----------------------------------------------------------------------|
-| `debug`      | `0` = connect to `localhost`; `1` = connect to `umbchvz.com` (dev)  |
-| `folder`     | Web root path. Use `/` if deployed at DocumentRoot.                  |
-| `mysql_user` | MySQL username created in step 6                                     |
-| `mysql_pass` | MySQL password created in step 6                                     |
-| `mysql_db`   | MySQL database name created in step 6                                |
+| Key              | Description                                                       |
+|------------------|-------------------------------------------------------------------|
+| `debug`          | `0` = connect to `localhost`; `1` = connect to `umbchvz.com`     |
+| `mysql_user`     | MySQL username created in step 4                                   |
+| `mysql_pass`     | MySQL password created in step 4                                   |
+| `mysql_db`       | MySQL database name created in step 4                              |
+| `session_secret` | Random string for signing session cookies                          |
 
 ---
 
-## 9. Create Required Directories and Set Permissions
+## 7. Set Permissions
 
 ```bash
-cd /var/www/html
+cd /var/www/hvz
 
 # Create directories the app expects
-sudo mkdir -p images/profilePictures
-sudo mkdir -p logs
+mkdir -p images/profilePictures
+mkdir -p logs
 
-# Set ownership to the web server user
-sudo chown -R www-data:www-data /var/www/html
+# Writable directories for uploads
+chmod 770 images/profilePictures
+chmod 770 logs
 
-# Secure config and scripts
-sudo chmod 640 config.txt
-sudo chmod -R 750 scripts/
-sudo chmod -R 750 includes/
-
-# Writable directories for uploads and logs
-sudo chmod 770 images/profilePictures
-sudo chmod 770 logs
+# Protect config
+chmod 640 config.txt
 ```
 
 ---
 
-## 10. Verify .htaccess Protection
-
-The root `.htaccess` already contains:
-
-```apache
-<Files config.txt>
-  order deny,allow
-  deny from all
-</Files>
-<Files .*>
-  order deny,allow
-  deny from all
-</Files>
-ErrorDocument 403 /maintenance.php
-```
-
-The `includes/.htaccess` denies all PHP execution:
-
-```
-deny from all
-```
-
-Verify these are working:
-
-```bash
-# These should all return 403:
-curl -s -o /dev/null -w "%{http_code}" http://localhost/config.txt
-curl -s -o /dev/null -w "%{http_code}" http://localhost/.htaccess
-curl -s -o /dev/null -w "%{http_code}" http://localhost/includes/util.php
-```
-
----
-
-## 11. Create the First Admin Account
+## 8. Create the First Admin Account
 
 There is no install wizard. Insert the first admin user directly into MySQL.
-The password hash is SHA256(SHA256(plaintext)):
+The password is stored as `SHA256(plaintext)`:
 
 ```bash
 # Generate a password hash (replace YOUR_PASSWORD)
@@ -538,19 +430,15 @@ VALUES ('US0000-', 'Admin', 'User', 'admin', 'admin@umbc.edu',
         'PASTE_HASH_HERE', 3, 3);
 ```
 
-> **Important:** The login flow works as: client sends `SHA256(salt + SHA256(password))`.
+> **Important:** The login flow: client sends `SHA256(salt + SHA256(password))`.
 > The database stores `SHA256(password)`. The server computes `SHA256(salt + storedHash)`
-> and compares. So only store the single SHA256 hash in the `passwd` column.
+> and compares. Only store the single SHA256 hash in the `passwd` column.
 
 ---
 
-## 12. Configure Email (Optional)
+## 9. Configure Email (Optional)
 
-Password recovery requires a working mail system. Install and configure `msmtp`:
-
-```bash
-sudo apt install -y msmtp msmtp-mta
-```
+Password recovery requires a working mail system. The app uses `msmtp` via `nodemailer`.
 
 Create `/etc/msmtprc`:
 
@@ -573,73 +461,94 @@ password       YOUR_APP_PASSWORD
 sudo chmod 600 /etc/msmtprc
 ```
 
-The site uses PHP's `mail()` function, which `.mailrc` redirects to msmtp.
-Copy the `.mailrc` to the web server user's home:
-
-```bash
-sudo cp /var/www/html/.mailrc /var/www/
-sudo chown www-data:www-data /var/www/.mailrc
-```
-
 ---
 
-## 13. Set Up Cron Jobs (Optional)
+## 10. Run the Application
 
-The site has an hourly cron script for automated tasks (zombie starvation timers,
-daily points, etc.). Most of it is currently commented out but the framework is there.
-
-```bash
-sudo crontab -u www-data -e
-```
-
-Add:
-
-```cron
-0 * * * * /usr/bin/php /var/www/html/scripts/hourlyCron.php >> /var/www/html/logs/cron.log 2>&1
-```
-
----
-
-## 14. Enable HTTPS (Recommended)
-
-Passwords are hashed client-side with SHA256, but all traffic should still use TLS:
+### Development
 
 ```bash
-sudo apt install -y certbot python3-certbot-apache
-sudo certbot --apache -d yourdomain.com
+cd /var/www/hvz
+npm run dev
 ```
 
----
+The server starts on port 3000 by default. Set `PORT` environment variable to change.
 
-## 15. PHP Configuration Tuning
+### Production (with systemd)
 
-Edit `/etc/php/8.1/apache2/php.ini` (adjust path for your PHP version):
+Create `/etc/systemd/system/hvz.service`:
 
 ```ini
-; Required
-session.save_path = "/var/lib/php/sessions"
-file_uploads = On
-upload_max_filesize = 5M        ; for profile pictures
-post_max_size = 8M
-max_execution_time = 60
+[Unit]
+Description=UMBC HvZ Website
+After=network.target mysql.service
 
-; Recommended
-display_errors = Off             ; production
-log_errors = On
-error_log = /var/log/php_errors.log
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/hvz
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3000
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-Restart Apache:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now hvz
+```
+
+### Reverse Proxy with Nginx (Recommended)
+
+Install nginx and proxy port 3000:
 
 ```bash
-sudo systemctl restart apache2
+sudo apt install -y nginx
+```
+
+Create `/etc/nginx/sites-available/hvz`:
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Block config.txt from being served
+    location = /config.txt { return 403; }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/hvz /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl restart nginx
 ```
 
 ---
 
-## 16. Seed Some Initial Data
+## 11. Enable HTTPS (Recommended)
 
-After the database and admin account are set up, seed some useful starting data:
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com
+```
+
+---
+
+## 12. Seed Initial Data
 
 ```sql
 USE hvz;
@@ -654,77 +563,92 @@ INSERT INTO faq (number, title, answer) VALUES
      'HvZ is a recreational game combining Nerf wars, manhunt, tag, and capture the flag.');
 
 -- Add a sample blog post
-INSERT INTO blog_posts (title, content, author) VALUES
-    ('Welcome!', 'Welcome to the new UMBC HvZ website.', 'Admin');
+INSERT INTO blog_posts (title, content, author, posted) VALUES
+    ('Welcome!', 'Welcome to the new UMBC HvZ website.', 'US0000-', NOW());
 ```
 
 ---
 
-## 17. Verify the Installation
-
-Open your browser and check these pages in order:
+## 13. Verify the Installation
 
 | Step | URL                          | Expected result                          |
 |------|------------------------------|------------------------------------------|
-| 1    | `http://yourdomain.com/`     | Redirects to `home.php`                  |
-| 2    | `http://yourdomain.com/home.php` | Home page with sidebar, logo, no errors |
-| 3    | `http://yourdomain.com/rules.html` | Static rules page (no PHP needed)      |
-| 4    | `http://yourdomain.com/about.php` | FAQ page showing entries from DB        |
-| 5    | `http://yourdomain.com/news.php`  | News page showing blog posts from DB   |
-| 6    | Log in with the admin account | Sidebar shows "Hello Admin!", admin links |
-| 7    | `http://yourdomain.com/admin/` | Admin panel with all management links   |
-| 8    | `http://yourdomain.com/config.txt` | **403 Forbidden** (must be blocked)  |
+| 1    | `http://yourdomain.com/`     | Home page with news, sidebar             |
+| 2    | `http://yourdomain.com/rules`| Rules page                               |
+| 3    | `http://yourdomain.com/about`| FAQ page showing entries from DB          |
+| 4    | `http://yourdomain.com/news` | News page showing blog posts             |
+| 5    | Log in via sidebar           | Shows "Welcome, Admin!", profile links   |
+| 6    | `http://yourdomain.com/admin`| Admin panel with all management links    |
+| 7    | `http://yourdomain.com/config.txt` | **403 Forbidden** (blocked by nginx) |
 
 ---
 
-## 18. Troubleshooting
+## 14. Troubleshooting
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Blank page / 500 error | PHP error hidden | Check `/var/log/apache2/hvz-error.log` and `/var/log/php_errors.log` |
-| "Couldn't open configuration file" | Missing `config.txt` | Create it per step 8 |
-| Database connection refused | Wrong credentials or MySQL not running | Verify `config.txt` values; run `sudo systemctl status mysql` |
-| `.htaccess` not working | `AllowOverride` not set | Ensure `AllowOverride All` in Apache vhost config |
-| Login doesn't work | Salt/session issue | Try submitting twice (known quirk); check `session.save_path` is writable |
-| Sidebar shows "Unknown status of elections" | Missing `settings` rows | Run the `INSERT INTO settings` from step 7 |
-| Achievement images broken | Wrong path | Verify `images/achievements/` directory exists with image files |
-| Profile picture upload fails | Permissions | `sudo chown www-data:www-data images/profilePictures && chmod 770 images/profilePictures` |
+| Cannot connect to site | Node.js not running | `sudo systemctl status hvz` |
+| Database connection refused | Wrong credentials or MySQL not running | Check `config.txt`; run `sudo systemctl status mysql` |
+| Login doesn't work | Session or hashing issue | Ensure `session_secret` is set in config.txt |
+| Sidebar shows "Unknown elections" | Missing `settings` rows | Run the `INSERT INTO settings` from step 5 |
+| Achievement images broken | Wrong path | Verify `images/achievements/` directory exists |
+| Profile picture upload fails | Permissions | `chmod 770 images/profilePictures` |
+| Email not sending | msmtp not configured | Check `/etc/msmtprc` and `/var/log/msmtp.log` |
 
 ---
 
-## File Map (Quick Reference)
+## File Map
 
 ```
-/var/www/html/
-├── config.txt              ← YOU CREATE THIS (step 8)
-├── .htaccess               ← security rules (already in repo)
-├── index.php               ← redirects to home.php
-├── home.php                ← landing page (DB: sidebar, login)
-├── rules.html              ← static rules page
-├── about.php               ← FAQ (DB: faq table)
-├── news.php                ← blog posts (DB: blog_posts)
-├── achievements.php        ← achievements (DB: achievements_new)
-├── contact.html            ← static officer list
-├── myProfile.php           ← player profile (DB: users, long_players)
-├── playerList.php          ← player roster (DB: users, long_players)
-├── kill.php                ← kill logging (DB: long_players)
-├── register.php            ← account creation (DB: users)
-├── voting.php              ← elections (DB: election_*)
-├── passwordRecovery.php    ← account recovery (DB: users)
-├── missionTools.php        ← mission creation guide
-├── css/style.css           ← modern responsive stylesheet
-├── js/main.js              ← mobile nav, FAQ accordion, filters
-├── images/                 ← logos, backgrounds, achievement icons
-├── includes/               ← PHP includes (blocked by .htaccess)
-│   ├── util.php            ← core functions + mysqli compat shim
-│   ├── loginForm.php       ← sidebar login widget
-│   ├── loginUpdate.php     ← authentication handler
-│   ├── htmlHeader.php      ← JS for time display + SHA256 login
-│   ├── saltGen.php         ← session salt generation
-│   └── ...
-├── pageIncludes/           ← per-page PHP logic
-├── admin/                  ← admin panel (officer-only)
-├── api/                    ← JSON endpoints
-├── scripts/                ← cron jobs (blocked by .htaccess)
-└── tcpdf/                  ← PDF library (bundled)
+/var/www/hvz/
+├── config.txt              ← YOU CREATE THIS (step 6)
+├── package.json            ← Node.js dependencies
+├── server/                 ← Express.js backend
+│   ├── index.js            ← Application entry point
+│   ├── config.js           ← Configuration loader
+│   ├── db.js               ← MySQL connection pool (mysql2)
+│   ├── middleware/
+│   │   └── auth.js         ← Authentication middleware
+│   ├── routes/             ← REST API routes
+│   │   ├── auth.js         ← Login, register, password recovery
+│   │   ├── profile.js      ← User profile operations
+│   │   ├── kill.js         ← Kill logging
+│   │   ├── players.js      ← Player list
+│   │   ├── news.js         ← Blog posts
+│   │   ├── achievements.js ← Achievement database
+│   │   ├── voting.js       ← Election system
+│   │   ├── faq.js          ← FAQ data
+│   │   ├── games.js        ← Game summary data
+│   │   ├── sidebar.js      ← Sidebar data (slides, polls)
+│   │   └── admin/          ← Admin API routes (13 files)
+│   └── services/           ← Business logic
+│       ├── achievements.js ← Achievement award/update system
+│       ├── attendance.js   ← Attendance statistics
+│       ├── ids.js          ← UID/kill code generation
+│       ├── email.js        ← Email sending (nodemailer)
+│       ├── gameState.js    ← Game/semester queries, helpers
+│       └── cron.js         ← Hourly cron tasks
+├── public/                 ← Static HTML/JS frontend
+│   ├── index.html          ← Home page
+│   ├── rules.html          ← Rules
+│   ├── about.html          ← FAQ (loads from API)
+│   ├── contact.html        ← Officer contacts
+│   ├── news.html           ← News (loads from API)
+│   ├── achievements.html   ← Achievement database (loads from API)
+│   ├── profile.html        ← User profile
+│   ├── players.html        ← Player list
+│   ├── kill.html           ← Kill logging
+│   ├── register.html       ← Account registration
+│   ├── voting.html         ← Elections
+│   ├── password-recovery.html
+│   ├── game-summary.html
+│   ├── mission-tools.html
+│   ├── js/
+│   │   ├── api.js          ← API client helper
+│   │   └── components.js   ← Shared UI (nav, sidebar, footer)
+│   └── admin/              ← Admin panel HTML pages (14 files)
+├── css/style.css           ← Stylesheet
+├── js/main.js              ← Mobile nav, accordion, filters
+├── images/                 ← Logos, backgrounds, achievement icons
+└── maps/                   ← Campus maps
 ```

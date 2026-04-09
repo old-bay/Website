@@ -1,0 +1,20 @@
+{
+  "name": "umbc-hvz",
+  "version": "2.0.0",
+  "description": "UMBC Humans vs. Zombies club website",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "mysql2": "^3.11.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.0",
+    "node-cron": "^3.0.3",
+    "pdfkit": "^0.15.0",
+    "qrcode": "^1.5.4"
+  }
+}

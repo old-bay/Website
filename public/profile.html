@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - My Profile</title>
+  <meta name="description" content="Your UMBC HvZ player profile, stats, and settings.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>My Profile</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area" id="profile-content">
+      <div class="card"><p class="text-muted">Loading profile...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('profile-content');
+  try {
+    const p = await HvZ.get('/api/profile');
+    let html = `<h2>Hi, ${HvZ.escapeHtml(p.fname)}!</h2>`;
+
+    // Stats
+    html += `<div class="card"><h2>Game &amp; Attendance Statistics</h2>
+      <h3>This Semester</h3><ul>
+        <li>Total Appearances: ${p.stats.appearancesThisTerm}</li>
+        <li>Missions Started as Zombie/OZ: ${p.stats.zombieStartsThisTerm}</li>
+        <li>Missions Started as Human: ${p.stats.humanStartsThisTerm}</li>
+        <li>Missions Moderated: ${p.stats.gamesModdedThisTerm}</li>
+        <li>Community Meetings Attended: ${p.stats.adminMeetingsThisTerm}</li>
+      </ul>
+      <h3>Cumulative</h3><ul>
+        <li>Total Appearances: ${p.stats.appearancesTotal}</li>
+        <li>Missions Started as Zombie/OZ: ${p.stats.zombieStartsTotal}</li>
+        <li>Missions Started as Human: ${p.stats.humanStartsTotal}</li>
+        <li>Missions Moderated: ${p.stats.gamesModdedTotal}</li>
+        <li>Community Meetings Attended (since Jan 2019): ${p.stats.adminMeetingsTotal}</li>
+      </ul>
+      <p class="text-muted"><strong>Note:</strong> Starting-side data may not be accurate with round-based or random-OZ missions.</p>
+      <p>${p.canVote ? '<strong>You are a member of UMBC Humans vs. Zombies.</strong>' : 'You are not yet a member of UMBC Humans vs. Zombies.'}</p>
+      <p>You have attended ${p.stats.appearancesThisTerm} meetings this semester and ${p.stats.appearancesLastTerm} last semester (total: ${p.stats.appearancesThisTerm + p.stats.appearancesLastTerm}). Membership requires 5 across the current and previous semester.</p>
+    </div>`;
+
+    // Waiver
+    html += `<div class="card"><h2>Other Player Records</h2>
+      <h3>Waiver Status</h3>
+      <p>Your waiver status is <strong>${HvZ.escapeHtml(p.waiverStatus)}</strong></p>
+      <p>By UMBC rules, all players must have a waiver on file each year. If your status shows "Cleared", our records indicate you have filed one.</p>
+    </div>`;
+
+    // Long Game Settings
+    html += `<div class="card"><h2>Long Game Settings</h2>`;
+    if (p.longGame && p.longPlayer) {
+      html += `<p>Your kill code for <strong>${HvZ.escapeHtml(p.longGame.title)}</strong> is <strong>${p.longPlayer.mainKill}</strong>.</p>`;
+    }
+    html += `<h3>OZ Opt-In</h3>
+      <form id="oz-form"><div class="form-group">
+        <label><input type="radio" name="ozOpt" value="in"${p.ozOptIn == 1 ? ' checked' : ''}> Yes, I want to be in the OZ pool</label></div>
+        <div class="form-group"><label><input type="radio" name="ozOpt" value="out"${p.ozOptIn == 0 ? ' checked' : ''}> No, I do not want to be in the OZ pool</label></div>
+        <div class="form-group"><label for="ozText"><strong>Brief reason for wanting to be an OZ:</strong><br><em>Leaving this blank will <u>disqualify</u> you as an OZ</em></label>
+        <textarea class="form-control" id="ozText" name="ozText" rows="4">${HvZ.escapeHtml(p.ozParagraph || '')}</textarea></div>
+        <button type="submit" class="btn btn-primary">Update OZ Preferences</button>
+      </form>`;
+    if (p.longPlayer && p.longPlayer.state > 0) {
+      html += `<h3>iDied</h3><p>Click this button <strong>only</strong> if you were tagged and the kill <strong>cannot</strong> be logged.</p>
+        <button class="btn btn-outline" onclick="doIDied()">iDied</button>`;
+    }
+    html += '</div>';
+
+    // Beta features
+    html += `<div class="card"><h2>Opt-In to New Features</h2>
+      <form id="beta-form"><div class="form-group">
+        <label><input type="radio" name="betaOpt" value="in"${p.isBetaTester == 1 ? ' checked' : ''}> Yes, opt me in to beta features</label></div>
+        <div class="form-group"><label><input type="radio" name="betaOpt" value="out"${p.isBetaTester == 0 ? ' checked' : ''}> No, I don't want to see new features</label></div>
+        <button type="submit" class="btn btn-primary">Update Preferences</button>
+      </form>`;
+    if (p.isBetaTester == 1 && p.canChangeName == 1) {
+      html += `<hr style="margin:1.5rem 0;border-color:var(--color-border);"><h3>Change Name / Username</h3>
+        <p>Current username: <strong>${HvZ.escapeHtml(p.uname)}</strong><br>Current first name: <strong>${HvZ.escapeHtml(p.fname)}</strong><br>Current last name: <strong>${HvZ.escapeHtml(p.lname)}</strong></p>
+        <form id="name-form">
+          <div class="form-group"><label for="new_uname">New username (leave blank for no change)</label><input class="form-control" type="text" id="new_uname" name="new_uname"></div>
+          <div class="form-group"><label for="new_fname">New first name</label><input class="form-control" type="text" id="new_fname" name="new_fname"></div>
+          <div class="form-group"><label for="new_lname">New last name</label><input class="form-control" type="text" id="new_lname" name="new_lname"></div>
+          <button type="submit" class="btn btn-primary">Update Name / Username</button>
+        </form>`;
+    }
+    html += '</div>';
+
+    // Profile picture
+    html += `<div class="card"><h2>Change Your Profile Picture</h2>
+      <p>Profile pictures must not contain gore, suggestive imagery, or memes. Optimal size: 100x100 px.</p>
+      <form id="pic-form" enctype="multipart/form-data">
+        <div class="form-group"><label for="image">Select image</label><input type="file" id="image" name="image" class="form-control" accept=".png,.jpg,.jpeg,.gif"></div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </form></div>`;
+
+    // Achievements
+    html += `<div class="card"><h2>Achievements</h2>
+      <h3>Select Favorite Achievement</h3>
+      <form id="fav-form"><div class="form-group"><label for="achieve">Achievement</label>
+        <select class="form-control" id="achieve" name="achieve">
+          <option value="">-- None --</option>
+          ${p.achievements.map(a => `<option value="${a.AID}"${a.isFavorite == 1 ? ' selected' : ''}>${HvZ.escapeHtml(a.name)}</option>`).join('')}
+        </select></div>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </form>
+      <h3 style="margin-top:1.5rem;">Earned Achievements</h3>`;
+    if (p.achievements.length === 0) {
+      html += '<p class="text-muted">No achievements earned yet.</p>';
+    } else {
+      html += '<div class="table-wrapper"><table class="table"><thead><tr><th>Icon</th><th>Name</th><th>Description</th></tr></thead><tbody>';
+      html += p.achievements.map(a => `<tr>
+        <td><img src="/images/achievements/${a.image || 'comingSoon.png'}" alt="" width="50" height="50" style="border-radius:4px;"></td>
+        <td>${HvZ.escapeHtml(a.name)}${a.isFavorite == 1 ? ' ★' : ''}</td>
+        <td>${HvZ.escapeHtml(a.description)}</td>
+      </tr>`).join('');
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    area.innerHTML = html;
+
+    // Wire up forms
+    document.getElementById('oz-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      await HvZ.post('/api/profile/oz', { ozOpt: fd.get('ozOpt'), ozText: fd.get('ozText') });
+      alert('OZ preferences updated.');
+    });
+    document.getElementById('beta-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await HvZ.post('/api/profile/beta', { betaOpt: new FormData(e.target).get('betaOpt') });
+      alert('Beta preference updated.'); location.reload();
+    });
+    const nameForm = document.getElementById('name-form');
+    if (nameForm) nameForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      await HvZ.post('/api/profile/names', { new_uname: fd.get('new_uname'), new_fname: fd.get('new_fname'), new_lname: fd.get('new_lname') });
+      alert('Name updated.'); location.reload();
+    });
+    document.getElementById('pic-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      await HvZ.request('/api/profile/picture', { method: 'POST', body: fd });
+      alert('Picture uploaded.'); location.reload();
+    });
+    document.getElementById('fav-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await HvZ.post('/api/profile/favorite-achievement', { achieveId: document.getElementById('achieve').value });
+      alert('Favorite achievement saved.');
+    });
+  } catch (err) {
+    area.innerHTML = '<div class="card"><p>Please <a href="/register">sign in</a> to see your profile.</p></div>';
+  }
+});
+
+async function doIDied() {
+  if (!confirm('Are you sure? Only use this if you were tagged and the kill cannot be logged.')) return;
+  try { await HvZ.post('/api/profile/idied'); alert('Status updated.'); location.reload(); }
+  catch (e) { alert(e.error || 'Error'); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Voting</title>
+  <meta name="description" content="UMBC HvZ officer elections and voting.">
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+
+<section class="page-header"><div class="container"><h1>Elections</h1></div></section>
+
+<main id="main-content">
+  <div class="container content-grid">
+    <div class="content-area" id="voting-area">
+      <div class="card"><p class="text-muted">Loading voting data...</p></div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('voting-area');
+  try {
+    const data = await HvZ.get('/api/voting');
+    let html = '';
+
+    if (data.status === 'closed' || data.status === 'soonClosed') {
+      html += '<div class="card"><p>Elections are currently closed.</p></div>';
+    } else {
+      // Candidate bios
+      if (data.candidates && data.candidates.length > 0) {
+        html += '<div class="card"><h2>Candidates</h2>';
+        for (const c of data.candidates) {
+          html += `<h3>${HvZ.escapeHtml(c.position)}: ${HvZ.escapeHtml(c.name)}</h3><p>${HvZ.escapeHtml(c.bio)}</p>`;
+        }
+        html += '</div>';
+      }
+
+      // Voting form
+      if (!data.locked && data.canVote && data.positions) {
+        html += '<div class="card"><h2>Cast Your Vote</h2><form id="vote-form">';
+        for (const [position, candidates] of Object.entries(data.positions)) {
+          html += `<div class="form-group"><label><strong>${HvZ.escapeHtml(position)}</strong></label><select class="form-control" name="${HvZ.escapeHtml(position)}">`;
+          html += '<option value="">-- Select --</option>';
+          for (const c of candidates) {
+            const sel = data.myVotes[position] === c ? ' selected' : '';
+            html += `<option value="${HvZ.escapeHtml(c)}"${sel}>${HvZ.escapeHtml(c)}</option>`;
+          }
+          html += '</select></div>';
+        }
+        html += '<button type="submit" class="btn btn-primary">Submit Votes</button></form></div>';
+      } else if (!data.canVote) {
+        html += '<div class="card"><p>You are not eligible to vote. You need at least 5 appearances across the current and previous semester.</p></div>';
+      } else if (data.locked) {
+        html += '<div class="card"><p>Voting is currently locked.</p></div>';
+      }
+    }
+
+    // Admin results
+    if (data.results) {
+      html += '<div class="card"><h2>Live Results (Admin View)</h2>';
+      for (const [pos, candidates] of Object.entries(data.results.positions)) {
+        html += `<h3>${HvZ.escapeHtml(pos)}</h3><ul>`;
+        for (const c of candidates) {
+          html += `<li>${HvZ.escapeHtml(c.name)}: ${c.votes} vote${c.votes !== 1 ? 's' : ''}</li>`;
+        }
+        html += '</ul>';
+      }
+      html += `<p><strong>Total unique voters: ${data.results.totalVoters}</strong></p></div>`;
+    }
+
+    area.innerHTML = html;
+
+    const voteForm = document.getElementById('vote-form');
+    if (voteForm) {
+      voteForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const votes = {};
+        for (const [k, v] of fd.entries()) votes[k] = v;
+        await HvZ.post('/api/voting/vote', { votes });
+        alert('Votes submitted!'); location.reload();
+      });
+    }
+  } catch (err) {
+    area.innerHTML = '<div class="card"><p>Please <a href="/register">sign in</a> to access voting.</p></div>';
+  }
+});
+</script>
+</body>
+</html>

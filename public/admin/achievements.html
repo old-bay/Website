@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Award Achievements</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Award Achievements</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const achieves = await HvZ.get('/api/admin/achievements');
+    const me = await HvZ.getMe();
+    const opts = achieves.map(a => `<option value="${a.key}">${HvZ.escapeHtml(a.name)}</option>`).join('');
+
+    let html = `<div class="card"><h2>Award to Individual</h2>
+      <form id="ind-form">
+        <div class="form-group"><label>Username</label><input class="form-control" type="text" name="username" required></div>
+        <div class="form-group"><label>Achievement</label><select class="form-control" name="achieveKey">${opts}</select></div>
+        <div id="ind-msg"></div>
+        <button type="submit" class="btn btn-primary">Award</button>
+      </form></div>`;
+
+    if (me.isAdmin >= 3) {
+      html += `<div class="card"><h2>Award to Group (Web Committee Only)</h2>
+        <form id="group-form">
+          <div class="form-group"><label>Achievement</label><select class="form-control" name="achieveKey">${opts}</select></div>
+          <div class="form-group"><label>WHERE clause (SQL)</label><input class="form-control" type="text" name="whereClause" placeholder="e.g. appearancesTotal >= 10" required></div>
+          <div id="group-msg"></div>
+          <button type="submit" class="btn btn-primary">Award to Group</button>
+        </form></div>`;
+    }
+
+    area.innerHTML = html;
+
+    document.getElementById('ind-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        const r = await HvZ.post('/api/admin/achievements/award', Object.fromEntries(fd));
+        document.getElementById('ind-msg').innerHTML = `<p style="color:var(--color-success);">${r.awarded ? 'Awarded' : 'Already had'} achievement for ${HvZ.escapeHtml(r.player)}</p>`;
+      } catch (err) { document.getElementById('ind-msg').innerHTML = `<p style="color:var(--color-accent);">${err.error}</p>`; }
+    });
+
+    const gf = document.getElementById('group-form');
+    if (gf) gf.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm('Award achievement to all matching players?')) return;
+      const fd = new FormData(e.target);
+      try {
+        const r = await HvZ.post('/api/admin/achievements/award-group', Object.fromEntries(fd));
+        document.getElementById('group-msg').innerHTML = `<p style="color:var(--color-success);">Awarded to ${r.awarded} of ${r.total} players</p>`;
+      } catch (err) { document.getElementById('group-msg').innerHTML = `<p style="color:var(--color-accent);">${err.error}</p>`; }
+    });
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+</script>
+</body>
+</html>

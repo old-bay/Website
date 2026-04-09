@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Training Resources</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Training Resources</h1></div></section>
+<main id="main-content">
+  <div class="container" id="area">
+    <div class="card">
+      <h2>Training Videos</h2>
+      <ol>
+        <li><a href="https://www.youtube.com/watch?v=TSN0s06Ip_8" target="_blank" rel="noopener noreferrer">Basic Website Walkthrough</a></li>
+        <li><a href="https://www.youtube.com/watch?v=tUPAEv9ZMSU" target="_blank" rel="noopener noreferrer">Admin Panel Walkthrough</a></li>
+        <li><a href="https://www.youtube.com/watch?v=6kI7kfcJpes" target="_blank" rel="noopener noreferrer">Weeklong Logistics Walkthrough</a></li>
+        <li><a href="https://www.youtube.com/watch?v=U06jlgpMtQs" target="_blank" rel="noopener noreferrer">Election Logistics Walkthrough</a></li>
+      </ol>
+      <div id="webcom-section"></div>
+    </div>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const me = await HvZ.getMe();
+    if (me.isAdmin >= 3) {
+      document.getElementById('webcom-section').innerHTML = `
+        <h3 style="margin-top:1.5rem;">Web Committee Only</h3>
+        <ol start="5"><li><a href="https://www.youtube.com/watch?v=Qskm9MTz2V4" target="_blank" rel="noopener noreferrer">GitHub and Database Access</a></li></ol>`;
+    }
+  } catch (e) {}
+});
+</script>
+</body>
+</html>

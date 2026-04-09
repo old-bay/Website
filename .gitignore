@@ -47,3 +47,8 @@ snake/
 # Actual code-specific ignores
 /config.txt
 /images/profilePictures/*
+
+# Node.js
+node_modules/
+*.log
+.env

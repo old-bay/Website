@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBC HvZ - Voting Members</title>
+  <link rel="icon" type="image/png" href="/images/hvzLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header" id="site-header"></header>
+<section class="page-header"><div class="container"><h1>Voting Members &amp; Semester Reset</h1></div></section>
+<main id="main-content"><div class="container" id="area"><div class="card"><p class="text-muted">Loading...</p></div></div></main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/api.js"></script>
+<script src="/js/components.js"></script>
+<script src="/js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const area = document.getElementById('area');
+  try {
+    const me = await HvZ.getMe();
+    const data = await HvZ.get('/api/admin/semester/voting-members');
+    let html = `<div class="card"><h2>Voting Members (${data.count})</h2>
+      <div class="table-wrapper"><table class="table"><thead><tr><th>Name</th><th>Total</th><th>This Term</th><th>Last Term</th></tr></thead><tbody>`;
+    for (const m of data.members) {
+      html += `<tr><td>${HvZ.escapeHtml(m.fname)} ${HvZ.escapeHtml(m.lname)} (${HvZ.escapeHtml(m.uname)})</td>
+        <td>${m.appearancesThisTerm + m.appearancesLastTerm}</td><td>${m.appearancesThisTerm}</td><td>${m.appearancesLastTerm}</td></tr>`;
+    }
+    html += '</tbody></table></div></div>';
+
+    if (me.isAdmin >= 2) {
+      html += `<div class="card"><h2>Danger Zone</h2>
+        <p>These operations reset attendance counters for all users. This cannot be undone!</p>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+          <button class="btn btn-outline" onclick="if(confirm('End semester? This resets all term counters.'))HvZ.post('/api/admin/semester/end-semester').then(()=>{alert('Semester ended.');location.reload();})">End Semester</button>
+          <button class="btn btn-outline" onclick="if(confirm('End year? This resets all term counters AND clears waivers.'))HvZ.post('/api/admin/semester/end-year').then(()=>{alert('Year ended.');location.reload();})">End Year</button>
+        </div></div>`;
+    }
+    area.innerHTML = html;
+  } catch (e) { area.innerHTML = '<div class="card"><p>Access denied.</p></div>'; }
+});
+</script>
+</body>
+</html>

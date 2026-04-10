@@ -52,3 +52,6 @@ snake/
 node_modules/
 *.log
 .env
+
+# Local dev seed data (exported CSVs — may contain user PII)
+seed-data/

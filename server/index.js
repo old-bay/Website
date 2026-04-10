@@ -1,5 +1,7 @@
 const express = require('express');
 const session = require('express-session');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const cron = require('node-cron');
 const config = require('./config');
@@ -8,8 +10,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(helmet({
+  contentSecurityPolicy: false // managed by nginx; avoid double-setting
+}));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Rate limit auth endpoints to prevent brute-force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,                   // 20 attempts per window
+  message: { error: 'Too many attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 app.use(session({
   secret: config.session_secret || 'hvz-session-secret-change-me',
@@ -18,7 +32,8 @@ app.use(session({
   cookie: {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production' // HTTPS-only cookies in production
   }
 }));
 
@@ -30,7 +45,7 @@ app.use('/css', express.static(path.join(__dirname, '..', 'css')));
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
 
 // --- API Routes ---
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/kill', require('./routes/kill'));
 app.use('/api/players', require('./routes/players'));
@@ -119,6 +134,12 @@ cron.schedule('0 * * * *', async () => {
 });
 
 // --- Start ---
-app.listen(PORT, () => {
+// Trust proxy (nginx) so req.ip, secure cookies, and X-Forwarded-* work correctly
+app.set('trust proxy', 1);
+
+// Remove Express version fingerprint
+app.disable('x-powered-by');
+
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`UMBC HvZ server running on port ${PORT}`);
 });

@@ -1,23 +1,22 @@
 # UMBC HvZ Website — Bare-Metal Setup Guide
 
-Step-by-step instructions for deploying this Node.js site on a fresh Linux server.
+Step-by-step instructions for deploying this Node.js site on a fresh Linux server,
+with security hardening built in from the start.
 
 ---
 
 ## 1. System Requirements
 
-| Component       | Minimum            | Recommended            |
-|-----------------|--------------------|------------------------|
-| OS              | Ubuntu 20.04 / Debian 11 / CentOS 8 | Ubuntu 22.04 LTS |
-| Runtime         | Node.js 18         | Node.js 20 LTS        |
-| Database        | MySQL 5.7 / MariaDB 10.3 | MySQL 8.0 / MariaDB 10.6 |
-| RAM             | 512 MB             | 1 GB+                  |
+| Component   | Minimum                          | Recommended              |
+|-------------|----------------------------------|--------------------------|
+| OS          | Ubuntu 20.04 / Debian 11         | Ubuntu 22.04 LTS         |
+| Runtime     | Node.js 18                       | Node.js 20 LTS           |
+| Database    | MySQL 5.7 / MariaDB 10.3         | MySQL 8.0 / MariaDB 10.6 |
+| RAM         | 512 MB                           | 1 GB+                    |
 
 ---
 
 ## 2. Install System Packages
-
-### Ubuntu / Debian
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -30,31 +29,107 @@ sudo apt install -y nodejs
 sudo apt install -y mysql-server
 # OR: sudo apt install -y mariadb-server
 
-# Mail (optional — for password recovery emails)
+# Nginx reverse proxy
+sudo apt install -y nginx
+
+# Mail transport (optional — for password recovery emails)
 sudo apt install -y msmtp msmtp-mta
 
-# Utilities
-sudo apt install -y git
-```
+# Security utilities
+sudo apt install -y ufw fail2ban unattended-upgrades git
 
-Verify Node.js: `node --version` (should be 18+).
+# Verify Node.js version (should be 18+)
+node --version
+```
 
 ---
 
-## 3. Deploy the Code
+## 3. OS and Network Hardening
+
+### Automatic security updates
 
 ```bash
-cd /var/www
-sudo git clone https://github.com/old-bay/Website.git hvz
-cd hvz
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
 
-# Install Node.js dependencies
+### Firewall
+
+Only expose SSH, HTTP, and HTTPS. The Node.js port (3000) is internal only.
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp      # SSH
+sudo ufw allow 80/tcp      # HTTP (redirects to HTTPS)
+sudo ufw allow 443/tcp     # HTTPS
+sudo ufw enable
+sudo ufw status
+```
+
+### SSH hardening
+
+Edit `/etc/ssh/sshd_config`:
+
+```
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+MaxAuthTries 3
+AllowUsers yourusername
+```
+
+```bash
+sudo systemctl restart sshd
+```
+
+> **Before applying `PasswordAuthentication no`**, make sure your SSH public key
+> is already in `~/.ssh/authorized_keys`, or you will lock yourself out.
+
+### fail2ban (brute-force protection)
+
+```bash
+sudo systemctl enable --now fail2ban
+# Verify it's watching SSH:
+sudo fail2ban-client status sshd
+```
+
+---
+
+## 4. Create a Dedicated Service User
+
+The app runs as an unprivileged system account with no login shell.
+
+```bash
+sudo useradd --system --shell /usr/sbin/nologin --home /var/www/hvz hvz
+```
+
+---
+
+## 5. Deploy the Code
+
+```bash
+sudo mkdir -p /var/www/hvz
+sudo git clone https://github.com/old-bay/Website.git /var/www/hvz
+cd /var/www/hvz
+
+# Install Node.js dependencies (includes helmet, express-rate-limit)
 npm install
 ```
 
 ---
 
-## 4. Set Up MySQL Database and User
+## 6. Set Up MySQL
+
+### Secure the installation
+
+```bash
+sudo mysql_secure_installation
+```
+
+Follow the prompts: set a root password, remove anonymous users, disallow remote
+root login, remove the test database.
+
+### Create the database and application user
 
 ```bash
 sudo mysql
@@ -63,41 +138,42 @@ sudo mysql
 Inside the MySQL shell:
 
 ```sql
--- Create the database
 CREATE DATABASE hvz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Create a dedicated user (choose a strong password)
+-- Minimal privileges — no DROP, CREATE, or ALTER at runtime
 CREATE USER 'hvzUser'@'localhost' IDENTIFIED BY 'CHANGE_ME_STRONG_PASSWORD';
-GRANT ALL PRIVILEGES ON hvz.* TO 'hvzUser'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON hvz.* TO 'hvzUser'@'localhost';
 FLUSH PRIVILEGES;
+EXIT;
+```
+
+Verify MySQL only listens on localhost (this is the default, but confirm):
+
+```bash
+grep bind-address /etc/mysql/mysql.conf.d/mysqld.cnf
+# Should show: bind-address = 127.0.0.1
 ```
 
 ---
 
-## 5. Create Database Tables
+## 7. Create Database Tables
 
-The repository does not include a SQL dump. Run the following schema, which is
-reconstructed from every MySQL query in the codebase.
+Save the following as `/tmp/schema.sql`, then run it:
 
 ```bash
-sudo mysql hvz < /path/to/schema.sql
+sudo mysql hvz < /tmp/schema.sql
 ```
-
-Save the following as `schema.sql`:
 
 ```sql
 -- ==========================================================
 -- UMBC HvZ Database Schema
--- Reconstructed from PHP source code
 -- ==========================================================
 
--- Site-wide key-value settings
 CREATE TABLE settings (
     `key`   VARCHAR(100) PRIMARY KEY,
     `value` TEXT
 );
 
--- Seed required settings
 INSERT INTO settings (`key`, `value`) VALUES
     ('showVotingLink', 'closed'),
     ('lockVoting', 'lock'),
@@ -106,14 +182,12 @@ INSERT INTO settings (`key`, `value`) VALUES
     ('nullUID', 'NULLUID'),
     ('TOS', 'Terms of Service text goes here.');
 
--- Academic semesters (used for attendance tracking)
 CREATE TABLE semesters (
     semesterID  INT AUTO_INCREMENT PRIMARY KEY,
     startDate   DATETIME NOT NULL,
     endDate     DATETIME NOT NULL
 );
 
--- Player accounts
 CREATE TABLE users (
     UID                     VARCHAR(7) PRIMARY KEY,
     fname                   VARCHAR(100) NOT NULL,
@@ -152,14 +226,12 @@ CREATE TABLE users (
     creationDate            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Profile pictures
 CREATE TABLE profilePictures (
     UID     VARCHAR(7) PRIMARY KEY,
     picture VARCHAR(255),
     FOREIGN KEY (UID) REFERENCES users(UID)
 );
 
--- Meeting definitions
 CREATE TABLE meeting_list (
     meetingID       VARCHAR(7) PRIMARY KEY,
     meetingName     VARCHAR(200),
@@ -170,7 +242,6 @@ CREATE TABLE meeting_list (
     creationDate    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Meeting attendance log
 CREATE TABLE meeting_log (
     UID             VARCHAR(7),
     meetingID       VARCHAR(7),
@@ -181,7 +252,6 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (meetingID) REFERENCES meeting_list(meetingID)
 );
 
--- Long (weeklong) game definitions
 CREATE TABLE long_games (
     gameID      VARCHAR(7) PRIMARY KEY,
     title       VARCHAR(200),
@@ -189,14 +259,12 @@ CREATE TABLE long_games (
     endDate     DATETIME
 );
 
--- Long game meetings
 CREATE TABLE long_meetings (
     gameID      VARCHAR(7),
     meetingID   VARCHAR(7),
     PRIMARY KEY (gameID, meetingID)
 );
 
--- Long game player state
 CREATE TABLE long_players (
     playerID            VARCHAR(7),
     gameID              VARCHAR(7),
@@ -216,7 +284,6 @@ CREATE TABLE long_players (
     FOREIGN KEY (gameID) REFERENCES long_games(gameID)
 );
 
--- Long game point tracking
 CREATE TABLE long_points (
     pointID     INT AUTO_INCREMENT PRIMARY KEY,
     gameID      VARCHAR(7),
@@ -226,7 +293,6 @@ CREATE TABLE long_points (
     FOREIGN KEY (gameID) REFERENCES long_games(gameID)
 );
 
--- Blog / news posts
 CREATE TABLE blog_posts (
     postID      INT AUTO_INCREMENT PRIMARY KEY,
     title       VARCHAR(300),
@@ -235,7 +301,6 @@ CREATE TABLE blog_posts (
     posted      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- FAQ entries
 CREATE TABLE faq (
     faqID   INT AUTO_INCREMENT PRIMARY KEY,
     number  INT,
@@ -243,28 +308,25 @@ CREATE TABLE faq (
     answer  TEXT
 );
 
--- Achievement FAQ
 CREATE TABLE achievementFaq (
     number  INT PRIMARY KEY,
     title   VARCHAR(300),
     answer  TEXT
 );
 
--- Achievement definitions
 CREATE TABLE achievements_new (
-    AID         INT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(200),
-    description TEXT,
-    class       CHAR(1),
-    alignment   CHAR(1),
-    image       VARCHAR(255),
-    isHidden    INT DEFAULT 0,
-    `key`       VARCHAR(100),
-    isAuto      INT DEFAULT 0,
+    AID            INT AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(200),
+    description    TEXT,
+    class          CHAR(1),
+    alignment      CHAR(1),
+    image          VARCHAR(255),
+    isHidden       INT DEFAULT 0,
+    `key`          VARCHAR(100),
+    isAuto         INT DEFAULT 0,
     updateFunction VARCHAR(200)
 );
 
--- Player <-> achievement links
 CREATE TABLE userAchieveLink_new (
     AID         INT,
     UID         VARCHAR(7),
@@ -275,36 +337,31 @@ CREATE TABLE userAchieveLink_new (
     FOREIGN KEY (UID) REFERENCES users(UID)
 );
 
--- Election: candidates
 CREATE TABLE election_candidates (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    position    VARCHAR(100),
-    name        VARCHAR(200),
-    bio         TEXT
+    id       INT AUTO_INCREMENT PRIMARY KEY,
+    position VARCHAR(100),
+    name     VARCHAR(200),
+    bio      TEXT
 );
 
--- Election: votes
 CREATE TABLE election_votes (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    uid         VARCHAR(7),
-    position    VARCHAR(100),
-    voteFor     VARCHAR(200)
+    id       INT AUTO_INCREMENT PRIMARY KEY,
+    uid      VARCHAR(7),
+    position VARCHAR(100),
+    voteFor  VARCHAR(200)
 );
 
--- Sidebar mission slides
 CREATE TABLE mission_slides (
     name                VARCHAR(100) PRIMARY KEY,
     url                 VARCHAR(500),
     startingSlideNumber VARCHAR(20) DEFAULT '0'
 );
 
--- Sidebar mission slide headings
 CREATE TABLE mission_slide_headings (
-    headingTitle    VARCHAR(100) PRIMARY KEY,
-    headingName     VARCHAR(200)
+    headingTitle VARCHAR(100) PRIMARY KEY,
+    headingName  VARCHAR(200)
 );
 
--- Seed default slide headings
 INSERT INTO mission_slide_headings (headingTitle, headingName) VALUES
     ('mainHeading', 'This Week''s Missions'),
     ('firstSlides', 'Monday Mission'),
@@ -312,40 +369,37 @@ INSERT INTO mission_slide_headings (headingTitle, headingName) VALUES
     ('thirdSlides', NULL);
 
 INSERT INTO mission_slides (name, url) VALUES
-    ('mondayMission', 'https://docs.google.com/presentation/d/PLACEHOLDER/'),
+    ('mondayMission',   'https://docs.google.com/presentation/d/PLACEHOLDER/'),
     ('thursdayMission', 'https://docs.google.com/presentation/d/PLACEHOLDER/'),
-    ('pointSlide', 'https://docs.google.com/presentation/d/PLACEHOLDER/');
+    ('pointSlide',      'https://docs.google.com/presentation/d/PLACEHOLDER/');
 
--- Equipment tracking
 CREATE TABLE equipment (
     EID         INT AUTO_INCREMENT PRIMARY KEY,
     description VARCHAR(200),
     loanedTo    VARCHAR(7)
 );
 
--- Polls
 CREATE TABLE poll_questions (
-    QID         INT AUTO_INCREMENT PRIMARY KEY,
-    question    TEXT,
-    isOpen      INT DEFAULT 1,
-    isActive    INT DEFAULT 0
+    QID      INT AUTO_INCREMENT PRIMARY KEY,
+    question TEXT,
+    isOpen   INT DEFAULT 1,
+    isActive INT DEFAULT 0
 );
 
 CREATE TABLE poll_options (
-    optionID    INT AUTO_INCREMENT PRIMARY KEY,
-    QID         INT,
-    `option`    VARCHAR(200),
+    optionID INT AUTO_INCREMENT PRIMARY KEY,
+    QID      INT,
+    `option` VARCHAR(200),
     FOREIGN KEY (QID) REFERENCES poll_questions(QID)
 );
 
 CREATE TABLE poll_votes (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    QID         INT,
-    UID         VARCHAR(7),
-    optionID    INT
+    id       INT AUTO_INCREMENT PRIMARY KEY,
+    QID      INT,
+    UID      VARCHAR(7),
+    optionID INT
 );
 
--- Custom MySQL function used by some queries
 DELIMITER //
 CREATE FUNCTION PlayerState(n INT)
     RETURNS VARCHAR(20)
@@ -363,15 +417,14 @@ DELIMITER ;
 
 ---
 
-## 6. Create the Configuration File
+## 8. Create the Configuration File
 
-The app reads `config.txt` in the project root. This file is gitignored.
+The app reads `config.txt` from the project root. This file is gitignored and
+must be created manually on the server.
 
 ```bash
 nano /var/www/hvz/config.txt
 ```
-
-Contents:
 
 ```
 # UMBC HvZ site configuration
@@ -382,65 +435,74 @@ mysql_db=hvz
 session_secret=CHANGE_ME_RANDOM_SECRET_STRING
 ```
 
-| Key              | Description                                                       |
-|------------------|-------------------------------------------------------------------|
-| `debug`          | `0` = connect to `localhost`; `1` = connect to `umbchvz.com`     |
-| `mysql_user`     | MySQL username created in step 4                                   |
-| `mysql_pass`     | MySQL password created in step 4                                   |
-| `mysql_db`       | MySQL database name created in step 4                              |
-| `session_secret` | Random string for signing session cookies                          |
+Generate a strong `session_secret`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+| Key              | Description                                              |
+|------------------|----------------------------------------------------------|
+| `debug`          | `0` = connect to localhost MySQL; `1` = remote host     |
+| `mysql_user`     | MySQL username from step 6                               |
+| `mysql_pass`     | MySQL password from step 6                               |
+| `mysql_db`       | MySQL database name from step 6                          |
+| `session_secret` | Random string for signing session cookies (keep secret)  |
 
 ---
 
-## 7. Set Permissions
+## 9. Set File Permissions
 
 ```bash
 cd /var/www/hvz
 
-# Create directories the app expects
-mkdir -p images/profilePictures
-mkdir -p logs
+# Create directories the app needs
+mkdir -p images/profilePictures logs
 
-# Writable directories for uploads
-chmod 770 images/profilePictures
-chmod 770 logs
+# Give ownership to the service user
+sudo chown -R hvz:hvz /var/www/hvz
 
-# Protect config
-chmod 640 config.txt
+# Restrict everything by default
+sudo chmod -R 750 /var/www/hvz
+
+# Config readable only by the service user
+sudo chmod 600 /var/www/hvz/config.txt
+
+# Upload and log directories need write access
+sudo chmod 770 /var/www/hvz/images/profilePictures
+sudo chmod 770 /var/www/hvz/logs
 ```
 
 ---
 
-## 8. Create the First Admin Account
+## 10. Create the First Admin Account
 
-There is no install wizard. Insert the first admin user directly into MySQL.
-The password is stored as `SHA256(plaintext)`:
+There is no install wizard. Insert the first admin directly into MySQL.
+
+Generate the password hash (the DB stores `SHA256(plaintext)`):
 
 ```bash
-# Generate a password hash (replace YOUR_PASSWORD)
 PASS_HASH=$(echo -n "YOUR_PASSWORD" | sha256sum | awk '{print $1}')
-echo "Password hash: $PASS_HASH"
+echo "Hash: $PASS_HASH"
 ```
 
 ```sql
 USE hvz;
 
 INSERT INTO users (UID, fname, lname, uname, email, passwd, isAdmin, isLongGameAuthed)
-VALUES ('US0000-', 'Admin', 'User', 'admin', 'admin@umbc.edu',
+VALUES ('US0000-', 'Admin', 'User', 'admin', 'admin@yourdomain.com',
         'PASTE_HASH_HERE', 3, 3);
 ```
 
-> **Important:** The login flow: client sends `SHA256(salt + SHA256(password))`.
-> The database stores `SHA256(password)`. The server computes `SHA256(salt + storedHash)`
-> and compares. Only store the single SHA256 hash in the `passwd` column.
+> **Auth flow:** The client sends `SHA256(salt + SHA256(password))`. The DB stores
+> `SHA256(password)`. The server computes `SHA256(salt + storedHash)` and compares.
+> Only store the single SHA256 hash in `passwd`.
 
 ---
 
-## 9. Configure Email (Optional)
+## 11. Configure Email (Optional)
 
-Password recovery requires a working mail system. The app uses `msmtp` via `nodemailer`.
-
-Create `/etc/msmtprc`:
+Password recovery emails require msmtp. Create `/etc/msmtprc`:
 
 ```
 defaults
@@ -461,20 +523,12 @@ password       YOUR_APP_PASSWORD
 sudo chmod 600 /etc/msmtprc
 ```
 
+For Gmail, use an [App Password](https://myaccount.google.com/apppasswords),
+not your account password.
+
 ---
 
-## 10. Run the Application
-
-### Development
-
-```bash
-cd /var/www/hvz
-npm run dev
-```
-
-The server starts on port 3000 by default. Set `PORT` environment variable to change.
-
-### Production (with systemd)
+## 12. systemd Service
 
 Create `/etc/systemd/system/hvz.service`:
 
@@ -485,13 +539,19 @@ After=network.target mysql.service
 
 [Service]
 Type=simple
-User=www-data
+User=hvz
 WorkingDirectory=/var/www/hvz
 ExecStart=/usr/bin/node server/index.js
 Restart=on-failure
 RestartSec=5
 Environment=PORT=3000
 Environment=NODE_ENV=production
+
+# Security restrictions
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/www/hvz/images/profilePictures /var/www/hvz/logs
 
 [Install]
 WantedBy=multi-user.target
@@ -500,55 +560,120 @@ WantedBy=multi-user.target
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now hvz
+sudo systemctl status hvz
 ```
 
-### Reverse Proxy with Nginx (Recommended)
+---
 
-Install nginx and proxy port 3000:
+## 13. Nginx Configuration
 
-```bash
-sudo apt install -y nginx
+The app binds to `127.0.0.1:3000` and is only reachable via nginx. The config
+below includes TLS, security headers, rate limiting, and file blocking.
+
+First, add the rate-limit zone to `/etc/nginx/nginx.conf` inside the `http {}` block:
+
+```nginx
+# In /etc/nginx/nginx.conf, inside http { ... }
+limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 ```
 
-Create `/etc/nginx/sites-available/hvz`:
+Then create `/etc/nginx/sites-available/hvz`:
 
 ```nginx
 server {
     listen 80;
     server_name yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+
+    # TLS — certbot fills in the cert paths (step 14)
+    # ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    server_tokens off;
+    add_header X-Content-Type-Options   "nosniff" always;
+    add_header X-Frame-Options          "SAMEORIGIN" always;
+    add_header X-XSS-Protection         "1; mode=block" always;
+    add_header Referrer-Policy          "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://docs.google.com https://www.youtube.com; img-src 'self' data:;" always;
+
+    # Upload size limit (profile pictures)
+    client_max_body_size 5M;
+
+    # Block sensitive files
+    location = /config.txt        { return 403; }
+    location = /package.json      { return 403; }
+    location = /package-lock.json { return 403; }
+    location ^~ /server/          { return 403; }
+    location ^~ /node_modules/    { return 403; }
+    location ~ /\.                { deny all; }   # dotfiles
+
+    # Rate-limit login/register/recover to 5 req/min per IP
+    location ~ ^/api/auth/(login|register|recover|reset) {
+        limit_req zone=login burst=5 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
-    # Block config.txt from being served
-    location = /config.txt { return 403; }
 }
 ```
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/hvz /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
+sudo nginx -t
+sudo systemctl enable --now nginx
 ```
 
 ---
 
-## 11. Enable HTTPS (Recommended)
+## 14. Enable HTTPS
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d yourdomain.com
 ```
 
+Certbot automatically edits the nginx config to fill in the cert paths and
+schedules automatic renewal. Verify renewal works:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+After certbot runs, restart nginx:
+
+```bash
+sudo systemctl reload nginx
+```
+
 ---
 
-## 12. Seed Initial Data
+## 15. Seed Initial Data
 
 ```sql
 USE hvz;
@@ -557,43 +682,83 @@ USE hvz;
 INSERT INTO semesters (startDate, endDate) VALUES
     ('2026-01-20 00:00:00', '2026-05-15 23:59:59');
 
--- Add a sample FAQ entry
+-- Sample FAQ entry
 INSERT INTO faq (number, title, answer) VALUES
     (1, 'What is Humans vs. Zombies?',
      'HvZ is a recreational game combining Nerf wars, manhunt, tag, and capture the flag.');
 
--- Add a sample blog post
+-- Sample blog post
 INSERT INTO blog_posts (title, content, author, posted) VALUES
     ('Welcome!', 'Welcome to the new UMBC HvZ website.', 'US0000-', NOW());
 ```
 
 ---
 
-## 13. Verify the Installation
+## 16. Verify the Installation
 
-| Step | URL                          | Expected result                          |
-|------|------------------------------|------------------------------------------|
-| 1    | `http://yourdomain.com/`     | Home page with news, sidebar             |
-| 2    | `http://yourdomain.com/rules`| Rules page                               |
-| 3    | `http://yourdomain.com/about`| FAQ page showing entries from DB          |
-| 4    | `http://yourdomain.com/news` | News page showing blog posts             |
-| 5    | Log in via sidebar           | Shows "Welcome, Admin!", profile links   |
-| 6    | `http://yourdomain.com/admin`| Admin panel with all management links    |
-| 7    | `http://yourdomain.com/config.txt` | **403 Forbidden** (blocked by nginx) |
+| Check | URL / Command | Expected result |
+|-------|---------------|-----------------|
+| Home page | `https://yourdomain.com/` | Loads with news and sidebar |
+| Rules | `https://yourdomain.com/rules` | Static rules page |
+| FAQ | `https://yourdomain.com/about` | FAQ entries from DB |
+| News | `https://yourdomain.com/news` | Blog posts from DB |
+| Login | Sidebar login form | "Welcome, Admin!" on success |
+| Admin panel | `https://yourdomain.com/admin` | All management links visible |
+| Config blocked | `https://yourdomain.com/config.txt` | **403 Forbidden** |
+| HTTP redirects | `http://yourdomain.com/` | **301 → HTTPS** |
+| Cookie flags | Browser devtools → Application → Cookies | `HttpOnly`, `Secure`, `SameSite=Lax` |
+| App log | `sudo journalctl -u hvz -f` | No errors at startup |
+| Firewall | `sudo ufw status` | Only 22, 80, 443 open |
+| Port binding | `ss -tlnp \| grep 3000` | Bound to `127.0.0.1` only |
 
 ---
 
-## 14. Troubleshooting
+## 17. Troubleshooting
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Cannot connect to site | Node.js not running | `sudo systemctl status hvz` |
-| Database connection refused | Wrong credentials or MySQL not running | Check `config.txt`; run `sudo systemctl status mysql` |
-| Login doesn't work | Session or hashing issue | Ensure `session_secret` is set in config.txt |
-| Sidebar shows "Unknown elections" | Missing `settings` rows | Run the `INSERT INTO settings` from step 5 |
-| Achievement images broken | Wrong path | Verify `images/achievements/` directory exists |
-| Profile picture upload fails | Permissions | `chmod 770 images/profilePictures` |
-| Email not sending | msmtp not configured | Check `/etc/msmtprc` and `/var/log/msmtp.log` |
+| Site unreachable | Node.js not running | `sudo systemctl status hvz` |
+| 502 Bad Gateway | Node crashed or wrong port | `sudo journalctl -u hvz -n 50` |
+| DB connection refused | Wrong credentials or MySQL down | Check `config.txt`; `sudo systemctl status mysql` |
+| Login fails | Wrong session secret or hashing issue | Ensure `session_secret` is set in `config.txt` |
+| Session not persisting | Cookie not set | Confirm `NODE_ENV=production` in systemd unit |
+| Sidebar shows "Unknown elections" | Missing `settings` rows | Run the `INSERT INTO settings` from step 7 |
+| Achievement images broken | Missing directory | Verify `images/achievements/` exists |
+| Profile picture upload fails | Permissions | `sudo chmod 770 /var/www/hvz/images/profilePictures` |
+| Email not sending | msmtp not configured | Check `/etc/msmtprc` and `sudo tail /var/log/msmtp.log` |
+| Rate limit firing for admins | Expected behaviour | Auth endpoints allow 20 req/15min per IP (app) + 5 req/min (nginx) |
+
+---
+
+## 18. Maintenance
+
+### Update the site
+
+```bash
+cd /var/www/hvz
+sudo -u hvz git pull
+sudo -u hvz npm install
+sudo systemctl restart hvz
+```
+
+### View live logs
+
+```bash
+sudo journalctl -u hvz -f
+```
+
+### Check fail2ban status
+
+```bash
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
+```
+
+### Renew TLS certificate (automatic, but manual test)
+
+```bash
+sudo certbot renew --dry-run
+```
 
 ---
 
@@ -601,14 +766,14 @@ INSERT INTO blog_posts (title, content, author, posted) VALUES
 
 ```
 /var/www/hvz/
-├── config.txt              ← YOU CREATE THIS (step 6)
+├── config.txt              ← YOU CREATE THIS (step 8, gitignored)
 ├── package.json            ← Node.js dependencies
 ├── server/                 ← Express.js backend
-│   ├── index.js            ← Application entry point
-│   ├── config.js           ← Configuration loader
-│   ├── db.js               ← MySQL connection pool (mysql2)
+│   ├── index.js            ← App entry point (helmet, rate limiting, session)
+│   ├── config.js           ← config.txt loader
+│   ├── db.js               ← mysql2 connection pool
 │   ├── middleware/
-│   │   └── auth.js         ← Authentication middleware
+│   │   └── auth.js         ← requireLogin / requireAdmin middleware
 │   ├── routes/             ← REST API routes
 │   │   ├── auth.js         ← Login, register, password recovery
 │   │   ├── profile.js      ← User profile operations
@@ -619,36 +784,23 @@ INSERT INTO blog_posts (title, content, author, posted) VALUES
 │   │   ├── voting.js       ← Election system
 │   │   ├── faq.js          ← FAQ data
 │   │   ├── games.js        ← Game summary data
-│   │   ├── sidebar.js      ← Sidebar data (slides, polls)
+│   │   ├── sidebar.js      ← Sidebar slides and polls
 │   │   └── admin/          ← Admin API routes (13 files)
 │   └── services/           ← Business logic
 │       ├── achievements.js ← Achievement award/update system
 │       ├── attendance.js   ← Attendance statistics
 │       ├── ids.js          ← UID/kill code generation
-│       ├── email.js        ← Email sending (nodemailer)
-│       ├── gameState.js    ← Game/semester queries, helpers
-│       └── cron.js         ← Hourly cron tasks
+│       ├── email.js        ← Email via nodemailer + msmtp
+│       ├── gameState.js    ← Game/semester queries
+│       └── cron.js         ← Hourly scheduled tasks
 ├── public/                 ← Static HTML/JS frontend
-│   ├── index.html          ← Home page
-│   ├── rules.html          ← Rules
-│   ├── about.html          ← FAQ (loads from API)
-│   ├── contact.html        ← Officer contacts
-│   ├── news.html           ← News (loads from API)
-│   ├── achievements.html   ← Achievement database (loads from API)
-│   ├── profile.html        ← User profile
-│   ├── players.html        ← Player list
-│   ├── kill.html           ← Kill logging
-│   ├── register.html       ← Account registration
-│   ├── voting.html         ← Elections
-│   ├── password-recovery.html
-│   ├── game-summary.html
-│   ├── mission-tools.html
 │   ├── js/
-│   │   ├── api.js          ← API client helper
-│   │   └── components.js   ← Shared UI (nav, sidebar, footer)
-│   └── admin/              ← Admin panel HTML pages (14 files)
+│   │   ├── api.js          ← Fetch wrapper and auth helpers
+│   │   └── components.js   ← Dynamic nav, sidebar, footer
+│   └── admin/              ← Admin panel HTML pages
 ├── css/style.css           ← Stylesheet
 ├── js/main.js              ← Mobile nav, accordion, filters
-├── images/                 ← Logos, backgrounds, achievement icons
+├── images/
+│   └── profilePictures/    ← User uploads (writable by hvz user)
 └── maps/                   ← Campus maps
 ```
